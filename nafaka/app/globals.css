@@ -1,0 +1,43 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: hsl(228 8% 12%);
+  --color-foreground: hsl(210 20% 98%);
+  --color-card: hsl(228 8% 16%);
+  --color-card-foreground: hsl(210 20% 98%);
+  --color-popover: hsl(228 8% 16%);
+  --color-popover-foreground: hsl(210 20% 98%);
+  --color-primary: hsl(25 95% 53%);
+  --color-primary-foreground: hsl(210 20% 98%);
+  --color-secondary: hsl(160 60% 45%);
+  --color-secondary-foreground: hsl(210 20% 98%);
+  --color-muted: hsl(228 8% 20%);
+  --color-muted-foreground: hsl(228 8% 60%);
+  --color-accent: hsl(228 8% 22%);
+  --color-accent-foreground: hsl(210 20% 98%);
+  --color-destructive: hsl(0 70% 50%);
+  --color-destructive-foreground: hsl(210 20% 98%);
+  --color-border: hsl(228 8% 24%);
+  --color-input: hsl(228 8% 24%);
+  --color-ring: hsl(25 95% 53%);
+  --color-chart-1: hsl(25 95% 53%);
+  --color-chart-2: hsl(160 60% 45%);
+  --color-chart-3: hsl(200 60% 45%);
+  --color-chart-4: hsl(280 60% 60%);
+  --color-chart-5: hsl(340 60% 55%);
+  --radius: 1rem;
+  --font-sans: 'Manrope', sans-serif;
+  --font-display: 'Fraunces', serif;
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  border-color: var(--color-border);
+}
