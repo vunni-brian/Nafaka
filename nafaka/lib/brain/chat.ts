@@ -50,9 +50,9 @@ export function answerQuestion(question: string, ctx: ChatContext): ChatReply {
   const q = question.toLowerCase()
 
   if (/(sunday|overspend|weekend|run low|spending pattern|which day)/.test(q)) return weekdayReply(ctx)
-  if (/(paid|pay|income|salary|when will|when do|next payment|likely)/.test(q)) return incomeReply(ctx)
+  if (/(paid|income|salary|when will|when do|next payment|payday|likely)/.test(q)) return incomeReply(ctx)
   if (/(cell|reliab|commitment|faithful|tithe|offering|missed)/.test(q)) return commitmentReply(ctx)
-  if (/(afford|worth|buy|can i|spend)/.test(q)) return affordReply(question, ctx)
+  if (/(afford|worth|buy|can i|spend|pay\b)/.test(q)) return affordReply(question, ctx)
   return overviewReply(ctx)
 }
 

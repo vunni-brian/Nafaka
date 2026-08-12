@@ -180,6 +180,6 @@ export default function AIChat() {
 }
 
 function formatDistance(runwayDays: number): string {
-  if (!Number.isFinite(runwayDays) || runwayDays >= 999) return 'long'
-  return `${Math.round(runwayDays)} days`
+  if (!Number.isFinite(runwayDays) || runwayDays >= 999) return 'long runway'
+  return `${Math.round(runwayDays)}-day runway`
 }

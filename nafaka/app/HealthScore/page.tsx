@@ -112,8 +112,8 @@ function ComponentRow({ component, state }: { component: HealthComponent; state:
               component.ready
                 ? 'bg-secondary/15 text-secondary'
                 : component.active
-                  ? 'bg-muted text-muted-foreground'
-                  : 'bg-muted/50 text-muted-foreground/70'
+                  ? 'bg-muted text-foreground/80'
+                  : 'bg-muted/60 text-foreground/70'
             }`}
           >
             {component.ready ? `${pct}% confident` : 'still learning'}
@@ -131,7 +131,7 @@ function ComponentRow({ component, state }: { component: HealthComponent; state:
       </div>
       {component.active && !component.ready && (
         <p className="text-[11px] text-muted-foreground mt-2">
-          Seeing real signals (n={component.sampleSize}) — needs more data to count toward your score.
+          Seeing real signals from {component.sampleSize} observed point{component.sampleSize === 1 ? '' : 's'} — needs more data to count toward your score.
         </p>
       )}
       {!component.active && (

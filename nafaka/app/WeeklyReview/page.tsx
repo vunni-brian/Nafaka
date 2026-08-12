@@ -1,11 +1,11 @@
 'use client'
 
-import React, { useMemo } from 'react'
+import React, { useMemo, useSyncExternalStore } from 'react'
 import BottomNav from '@/components/BottomNav'
 import { useGoogleFont } from '@/lib/fonts'
 import { Bar, BarChart, CartesianGrid, XAxis, ResponsiveContainer } from 'recharts'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
-import { Sparkles, ArrowUpRight, ArrowDownRight, CalendarClock } from 'lucide-react'
+import { Sparkles, ArrowUpRight, ArrowDownRight, Minus, CalendarClock } from 'lucide-react'
 import { useFinance } from '@/lib/store'
 import { storeTransactionsToBrain } from '@/lib/brain/adapters'
 import { dailyTotals, formatWeekRange, percentDelta, weeklyTotals } from '@/lib/brain/weekly'
@@ -21,6 +21,12 @@ export default function WeeklyReview() {
   const body = useGoogleFont('Manrope')
   const { transactions, behaviorModel } = useFinance()
 
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  )
+
   const now = useMemo(() => new Date(), [])
   const brainTx = useMemo(() => storeTransactionsToBrain(transactions), [transactions])
   const chartData = useMemo(() => dailyTotals(brainTx, now), [brainTx, now])
@@ -29,6 +35,17 @@ export default function WeeklyReview() {
 
   const incomeDelta = percentDelta(thisWeek.income, lastWeek.income)
   const spendingDelta = percentDelta(thisWeek.spending, lastWeek.spending)
+
+  const incomeDeltaText = incomeDelta === null
+    ? lastWeek.events === 0
+      ? 'First week of data'
+      : 'No income this week'
+    : `${incomeDelta > 0 ? '+' : ''}${incomeDelta}% vs last week`
+  const spendingDeltaText = spendingDelta === null
+    ? lastWeek.events === 0
+      ? 'First week of data'
+      : 'No spending this week'
+    : `${spendingDelta > 0 ? '+' : ''}${spendingDelta}% vs last week`
 
   const insight: BehaviorInsight | null = behaviorModel.insights[0] ?? null
 
@@ -39,66 +56,62 @@ export default function WeeklyReview() {
         <h1 style={{ fontFamily: display }} className="text-3xl text-foreground mb-2">
           Your week, in review
         </h1>
-        <p className="text-sm text-muted-foreground mb-8">{formatWeekRange(now)}</p>
+        <p className="text-sm text-muted-foreground mb-8">{mounted ? formatWeekRange(now) : '\u00A0'}</p>
 
         <div className="grid grid-cols-2 gap-3 mb-6">
           <div className="bg-card border border-border rounded-2xl p-4">
             <div className="flex items-center gap-1.5 text-secondary text-xs font-semibold mb-2">
-              <ArrowUpRight size={13} /> Income
+              {!mounted || incomeDelta === null ? <Minus size={13} /> : incomeDelta >= 0 ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />} Income
             </div>
             <p style={{ fontFamily: display }} className="text-xl text-foreground">
-              {fmt(thisWeek.income)}
+              {mounted ? fmt(thisWeek.income) : '—'}
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {incomeDelta === null
-                ? lastWeek.events === 0
-                  ? 'First week of data'
-                  : 'No income this week'
-                : `${incomeDelta > 0 ? '+' : ''}${incomeDelta}% vs last week`}
+              {mounted ? incomeDeltaText : '\u00A0'}
             </p>
           </div>
           <div className="bg-card border border-border rounded-2xl p-4">
             <div className="flex items-center gap-1.5 text-primary text-xs font-semibold mb-2">
-              <ArrowDownRight size={13} /> Spending
+              {!mounted || spendingDelta === null ? <Minus size={13} /> : spendingDelta <= 0 ? <ArrowDownRight size={13} /> : <ArrowUpRight size={13} />} Spending
             </div>
             <p style={{ fontFamily: display }} className="text-xl text-foreground">
-              {fmt(thisWeek.spending)}
+              {mounted ? fmt(thisWeek.spending) : '—'}
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {spendingDelta === null
-                ? thisWeek.events === 0
-                  ? 'Nothing recorded yet'
-                  : 'First week of data'
-                : `${spendingDelta > 0 ? '+' : ''}${spendingDelta}% vs last week`}
+              {mounted ? spendingDeltaText : '\u00A0'}
             </p>
           </div>
         </div>
 
         <div className="bg-card border border-border rounded-2xl p-5 mb-6">
           <p className="text-sm font-semibold text-foreground mb-4">Income vs spending</p>
-          <ChartContainer
-            config={{
-              income: { label: 'Income', color: 'oklch(0.33 0.055 155)' },
-              spending: { label: 'Spending', color: 'oklch(0.56 0.15 38)' },
-            }}
-            className="h-44 w-full"
-          >
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} barGap={4}>
-                <CartesianGrid vertical={false} stroke="var(--border)" />
-                <XAxis
-                  dataKey="label"
-                  tickLine={false}
-                  axisLine={false}
-                  tickMargin={8}
-                  fontSize={11}
-                />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Bar dataKey="income" fill="var(--color-income)" radius={4} />
-                <Bar dataKey="spending" fill="var(--color-spending)" radius={4} />
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartContainer>
+          {mounted ? (
+            <ChartContainer
+              config={{
+                income: { label: 'Income', color: 'oklch(0.33 0.055 155)' },
+                spending: { label: 'Spending', color: 'oklch(0.56 0.15 38)' },
+              }}
+              className="h-44 w-full"
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} barGap={4}>
+                  <CartesianGrid vertical={false} stroke="var(--border)" />
+                  <XAxis
+                    dataKey="label"
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                    fontSize={11}
+                  />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Bar dataKey="income" fill="var(--color-income)" radius={4} />
+                  <Bar dataKey="spending" fill="var(--color-spending)" radius={4} />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          ) : (
+            <div className="h-44" />
+          )}
         </div>
 
         <div className="rounded-3xl bg-primary text-primary-foreground p-6 mb-6 relative overflow-hidden">
