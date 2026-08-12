@@ -1,25 +1,36 @@
 'use client'
 
-import React from 'react'
+import React, { useMemo } from 'react'
 import BottomNav from '@/components/BottomNav'
 import { useGoogleFont } from '@/lib/fonts'
 import { Bar, BarChart, CartesianGrid, XAxis, ResponsiveContainer } from 'recharts'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { Sparkles, ArrowUpRight, ArrowDownRight, CalendarClock } from 'lucide-react'
+import { useFinance } from '@/lib/store'
+import { storeTransactionsToBrain } from '@/lib/brain/adapters'
+import { dailyTotals, formatWeekRange, percentDelta, weeklyTotals } from '@/lib/brain/weekly'
+import { regularityCopy, stateCopy, stateLabel } from '@/lib/brain/describe'
+import type { BehaviorInsight } from '@/lib/brain/types'
 
-const chartData = [
-  { day: 'Mon', income: 12000, spending: 9000 },
-  { day: 'Tue', income: 0, spending: 6500 },
-  { day: 'Wed', income: 45000, spending: 14000 },
-  { day: 'Thu', income: 8000, spending: 7200 },
-  { day: 'Fri', income: 0, spending: 11000 },
-  { day: 'Sat', income: 20000, spending: 15800 },
-  { day: 'Sun', income: 0, spending: 21000 },
-]
+function fmt(n: number) {
+  return `UGX ${Math.round(n).toLocaleString()}`
+}
 
 export default function WeeklyReview() {
   const display = useGoogleFont('Fraunces')
   const body = useGoogleFont('Manrope')
+  const { transactions, behaviorModel } = useFinance()
+
+  const now = useMemo(() => new Date(), [])
+  const brainTx = useMemo(() => storeTransactionsToBrain(transactions), [transactions])
+  const chartData = useMemo(() => dailyTotals(brainTx, now), [brainTx, now])
+  const thisWeek = useMemo(() => weeklyTotals(brainTx, now, 0), [brainTx, now])
+  const lastWeek = useMemo(() => weeklyTotals(brainTx, now, 1), [brainTx, now])
+
+  const incomeDelta = percentDelta(thisWeek.income, lastWeek.income)
+  const spendingDelta = percentDelta(thisWeek.spending, lastWeek.spending)
+
+  const insight: BehaviorInsight | null = behaviorModel.insights[0] ?? null
 
   return (
     <div className="min-h-screen bg-background pb-32" style={{ fontFamily: body }}>
@@ -28,7 +39,7 @@ export default function WeeklyReview() {
         <h1 style={{ fontFamily: display }} className="text-3xl text-foreground mb-2">
           Your week, in review
         </h1>
-        <p className="text-sm text-muted-foreground mb-8">Nov 3 – Nov 9</p>
+        <p className="text-sm text-muted-foreground mb-8">{formatWeekRange(now)}</p>
 
         <div className="grid grid-cols-2 gap-3 mb-6">
           <div className="bg-card border border-border rounded-2xl p-4">
@@ -36,18 +47,30 @@ export default function WeeklyReview() {
               <ArrowUpRight size={13} /> Income
             </div>
             <p style={{ fontFamily: display }} className="text-xl text-foreground">
-              UGX 85,000
+              {fmt(thisWeek.income)}
             </p>
-            <p className="text-xs text-muted-foreground mt-0.5">18% below last week</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {incomeDelta === null
+                ? lastWeek.events === 0
+                  ? 'First week of data'
+                  : 'No income this week'
+                : `${incomeDelta > 0 ? '+' : ''}${incomeDelta}% vs last week`}
+            </p>
           </div>
           <div className="bg-card border border-border rounded-2xl p-4">
             <div className="flex items-center gap-1.5 text-primary text-xs font-semibold mb-2">
               <ArrowDownRight size={13} /> Spending
             </div>
             <p style={{ fontFamily: display }} className="text-xl text-foreground">
-              UGX 84,500
+              {fmt(thisWeek.spending)}
             </p>
-            <p className="text-xs text-muted-foreground mt-0.5">Steady vs last week</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {spendingDelta === null
+                ? thisWeek.events === 0
+                  ? 'Nothing recorded yet'
+                  : 'First week of data'
+                : `${spendingDelta > 0 ? '+' : ''}${spendingDelta}% vs last week`}
+            </p>
           </div>
         </div>
 
@@ -64,7 +87,7 @@ export default function WeeklyReview() {
               <BarChart data={chartData} barGap={4}>
                 <CartesianGrid vertical={false} stroke="var(--border)" />
                 <XAxis
-                  dataKey="day"
+                  dataKey="label"
                   tickLine={false}
                   axisLine={false}
                   tickMargin={8}
@@ -84,13 +107,23 @@ export default function WeeklyReview() {
             <Sparkles size={16} />
             <p className="text-xs uppercase tracking-wide font-semibold">Coaching insight</p>
           </div>
-          <p style={{ fontFamily: display }} className="text-lg leading-snug">
-            You stayed within your food budget despite earning less this week.
-          </p>
-          <p className="text-sm text-primary-foreground/80 mt-3 leading-relaxed">
-            That consistency is quietly reducing your reliance on borrowing. Keep protecting your Wednesday Cell
-            contribution &mdash; it&rsquo;s been your most reliable habit for two months straight.
-          </p>
+          {insight ? (
+            <>
+              <p style={{ fontFamily: display }} className="text-lg leading-snug">
+                {insight.text}
+              </p>
+              <p className="text-sm text-primary-foreground/80 mt-3 leading-relaxed">
+                Currently {stateLabel(behaviorModel.state)} —{' '}
+                {behaviorModel.stateDetail.runwayDays < 999
+                  ? `your buffer covers roughly ${behaviorModel.stateDetail.runwayDays} days of essentials.`
+                  : stateCopy(behaviorModel.state)}
+              </p>
+            </>
+          ) : (
+            <p style={{ fontFamily: display }} className="text-lg leading-snug">
+              Nafaka is still learning your patterns this week.
+            </p>
+          )}
         </div>
 
         <div className="bg-card border border-border rounded-2xl p-5 flex items-start gap-3">
@@ -100,8 +133,11 @@ export default function WeeklyReview() {
           <div>
             <p className="text-sm font-semibold text-foreground mb-1">Looking ahead to next week</p>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Based on your pattern, there&rsquo;s a good chance you&rsquo;ll receive a freelance payment around Thursday. Worth
-              holding off on non-essential spending until then.
+              {behaviorModel.signals.incomeRegularity.sampleSize >= 2
+                ? regularityCopy(behaviorModel.signals.incomeRegularity.value)
+                : 'Nafaka is still learning your income rhythm. For now, base tomorrow on today\u2019s safe-to-spend.'}{' '}
+              {behaviorModel.stateDetail.upcomingTotal > 0 &&
+                `${fmt(behaviorModel.stateDetail.upcomingTotal)} in commitments sits on the horizon.`}
             </p>
           </div>
         </div>

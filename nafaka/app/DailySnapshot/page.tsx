@@ -159,9 +159,11 @@ export default function DailySnapshot() {
               See all <ChevronRight size={13} />
             </Link>
           </div>
-          {commitments.length > 0 ? (
+          {commitments.filter((c) => c.status !== 'fulfilled').length > 0 ? (
             <div className="space-y-2.5">
-              {commitments.map(({ id, label, when, amount }) => {
+              {commitments
+                .filter((c) => c.status !== 'fulfilled')
+                .map(({ id, label, when, amount }) => {
                 const Icon = commitmentIcon(label)
                 return (
                   <div key={id} className="flex items-center gap-3 bg-card border border-border rounded-2xl px-4 py-3.5">

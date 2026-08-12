@@ -5,21 +5,28 @@ import BottomNav from '@/components/BottomNav'
 import { useGoogleFont } from '@/lib/fonts'
 import { RadialBarChart, RadialBar, PolarAngleAxis, ResponsiveContainer } from 'recharts'
 import { ChartContainer } from '@/components/ui/chart'
-import { TrendingUp, ShieldCheck, PiggyBank, HandCoins, ArrowUpRight } from 'lucide-react'
+import { TrendingUp, ShieldCheck, PiggyBank, HandCoins, LifeBuoy, Sparkles } from 'lucide-react'
+import { useFinance } from '@/lib/store'
+import { computeHealthScore, type HealthComponent, type HealthComponentKey } from '@/lib/brain/health'
+import { confidencePct, stateLabel } from '@/lib/brain/describe'
+import type { FinancialState } from '@/lib/brain/types'
+
+const iconFor: Record<HealthComponentKey, typeof TrendingUp> = {
+  consistency: TrendingUp,
+  commitment: ShieldCheck,
+  savings: PiggyBank,
+  debt: HandCoins,
+  resilience: LifeBuoy,
+}
 
 export default function HealthScore() {
   const display = useGoogleFont('Fraunces')
   const body = useGoogleFont('Manrope')
+  const { behaviorModel } = useFinance()
 
-  const score = 71
-  const data = [{ name: 'score', value: score, fill: 'var(--color-score)' }]
-
-  const components = [
-    { key: 'consistency', label: 'Consistency', value: 78, icon: TrendingUp },
-    { key: 'commitment', label: 'Commitment reliability', value: 84, icon: ShieldCheck },
-    { key: 'savings', label: 'Savings rate', value: 52, icon: PiggyBank },
-    { key: 'debt', label: 'Debt management', value: 66, icon: HandCoins },
-  ]
+  const health = computeHealthScore(behaviorModel)
+  const score = health.score
+  const data = [{ name: 'score', value: score ?? 0, fill: 'var(--color-score)' }]
 
   return (
     <div className="min-h-screen bg-background pb-32" style={{ fontFamily: body }}>
@@ -50,13 +57,15 @@ export default function HealthScore() {
           </ChartContainer>
           <div className="-mt-32 flex flex-col items-center">
             <p style={{ fontFamily: display }} className="text-5xl text-foreground">
-              {score}
+              {score ?? '—'}
             </p>
-            <p className="text-xs text-muted-foreground mt-1">out of 100</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {score !== null ? 'out of 100' : 'score still developing'}
+            </p>
           </div>
           <div className="mt-4 flex items-center gap-1.5 bg-secondary/15 text-secondary text-xs font-semibold px-3 py-1.5 rounded-full">
-            <ArrowUpRight size={13} />
-            Up 4 points this week
+            <Sparkles size={13} />
+            {health.readyCount} of {health.totalCount} components confident
           </div>
         </div>
 
@@ -65,33 +74,76 @@ export default function HealthScore() {
             A student with UGX 20,000 can score higher than someone with millions — this score rewards consistent
             decisions, not account balances.
           </p>
+          <p className="text-xs text-muted-foreground mt-3 leading-relaxed">
+            A component below 50% confidence counts as “still learning” and doesn&rsquo;t drag your score yet.{' '}
+            {score !== null && `Your score today is built on ${health.readyCount} confident component${health.readyCount === 1 ? '' : 's'}.`}
+          </p>
         </div>
 
         <h2 className="text-sm font-semibold text-foreground mb-3">What makes up your score</h2>
         <div className="space-y-3">
-          {components.map(({ key, label, value, icon: Icon }) => (
-            <div key={key} className="bg-card border border-border rounded-2xl p-4">
-              <div className="flex items-center justify-between mb-2.5">
-                <div className="flex items-center gap-2.5">
-                  <span className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                    <Icon size={15} className="text-secondary" />
-                  </span>
-                  <p className="text-sm font-medium text-foreground">{label}</p>
-                </div>
-                <p className="text-sm font-semibold text-foreground">{value}</p>
-              </div>
-              <div className="h-2 rounded-full bg-muted overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-primary"
-                  style={{ width: `${value}%` }}
-                />
-              </div>
-            </div>
+          {health.components.map((c) => (
+            <ComponentRow key={c.key} component={c} state={behaviorModel.state} />
           ))}
         </div>
       </div>
 
       <BottomNav active="score" />
+    </div>
+  )
+}
+
+function ComponentRow({ component, state }: { component: HealthComponent; state: FinancialState }) {
+  const Icon = iconFor[component.key]
+  const pct = confidencePct(component.confidence)
+
+  return (
+    <div className="bg-card border border-border rounded-2xl p-4">
+      <div className="flex items-center justify-between mb-2.5">
+        <div className="flex items-center gap-2.5">
+          <span className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+            <Icon size={15} className="text-secondary" />
+          </span>
+          <p className="text-sm font-medium text-foreground">{component.label}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span
+            className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+              component.ready
+                ? 'bg-secondary/15 text-secondary'
+                : component.active
+                  ? 'bg-muted text-muted-foreground'
+                  : 'bg-muted/50 text-muted-foreground/70'
+            }`}
+          >
+            {component.ready ? `${pct}% confident` : 'still learning'}
+          </span>
+          <p className="text-sm font-semibold text-foreground w-8 text-right">
+            {component.ready ? Math.round(component.value) : '—'}
+          </p>
+        </div>
+      </div>
+      <div className="h-2 rounded-full bg-muted overflow-hidden">
+        <div
+          className={`h-full rounded-full ${component.ready ? 'bg-primary' : 'bg-muted-foreground/25'}`}
+          style={{ width: `${component.ready ? Math.round(component.value) : 8}%` }}
+        />
+      </div>
+      {component.active && !component.ready && (
+        <p className="text-[11px] text-muted-foreground mt-2">
+          Seeing real signals (n={component.sampleSize}) — needs more data to count toward your score.
+        </p>
+      )}
+      {!component.active && (
+        <p className="text-[11px] text-muted-foreground mt-2">
+          No data yet — record {component.key === 'consistency' ? 'income and expenses' : component.key === 'commitment' ? 'commitment outcomes in Life Events' : component.key === 'savings' ? 'weekly snapshots' : component.key === 'debt' ? 'income and debt payments' : 'expenses'} to start.
+        </p>
+      )}
+      {component.ready && (
+        <p className="text-[11px] text-muted-foreground mt-2">
+          State: {stateLabel(state)} — this component reflects {component.sampleSize} observed point{component.sampleSize === 1 ? '' : 's'}.
+        </p>
+      )}
     </div>
   )
 }

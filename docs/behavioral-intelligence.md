@@ -266,7 +266,7 @@ With history, Nafaka can say:
 
 That is far more meaningful than "Your balance is UGX 150,000."
 
-Implementation (Phase 0): the store keeps weekly balance snapshots (seeded history; the current week is derived from the live balance, so it always reflects the latest state). They feed `savingsConsistency` today and will feed the "improving over time" surfaces (Health Score trend, Weekly Review) next.
+Implementation (Phase 0): the store keeps weekly balance snapshots (seeded history; the current week is derived from the live balance, so it always reflects the latest state). They feed `savingsConsistency`, which is read by the Health Score's "Savings rate" component and by Weekly Review; trend lines ("improved for three consecutive weeks") are future work.
 
 ---
 
@@ -367,7 +367,7 @@ The model is updated after every recorded transaction, commitment outcome, or sn
 3. **Decay** — weight recent observations higher (exponential time decay) so the model follows behavior change instead of averaging it away.
 4. **Bayesian signal updates** — replace the static formula with prior/posterior updates; confidence becomes a principled probability.
 5. **LLM augmentation** — rule-based insights give the AI structured context; the LLM composes language, never invents signals (the deterministic-brain rule).
-6. **Per-screen confidence UI** — "Based on 42 events" and tier language (done for FinancialPersonality; extend to Health Score, Weekly Review, chat).
+6. **Per-screen confidence UI** — "Based on 42 events" and tier language (done for Financial Personality, Health Score components, chat greeting; extend to every remaining surface).
 7. **Improvement surfaces** — week-over-week signal deltas feeding Health Score trend and Weekly Review ("improved consistency for 3 consecutive weeks").
 
 ## Example

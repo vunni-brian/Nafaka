@@ -25,7 +25,7 @@ Phase 0 status: prototype validating the mental model — users understand and t
 | `/LifeEvents` | Commitments | Upcoming obligations (protected first) |
 | `/HealthScore` | Health score | Financial health breakdown |
 | `/WeeklyReview` | Weekly review | Income vs spending chart + coaching |
-| `/AIChat` | AI chat | Demo Q&A with canned responses |
+| `/AIChat` | AI chat | Q&A answered from the behavior model |
 | `/Feedback` (via floating button) | Feedback | In-app feedback form for testers |
 
 ## How to test
@@ -59,7 +59,7 @@ The v1 behavioral intelligence engine in `lib/brain/` builds a personal behavior
 - **Rule-based insights** — emitted only when a signal is confident enough to coach from
 - **Knowledge ladder** — the UI distinguishes what Nafaka knows, suspects, and doesn't know yet ("We're still learning your pattern" → "This is a strong pattern")
 
-Live in the prototype: the Financial Personality screen renders entirely from the model with confidence %, and Life Events marks commitments paid/missed so `commitmentReliability` becomes real behavioral evidence. Weekly balance snapshots feed `savingsConsistency`.
+Live in the prototype: the Financial Personality screen renders entirely from the model with confidence %, Life Events marks commitments paid/missed so `commitmentReliability` becomes real behavioral evidence, the **Health Score** is a confidence-weighted blend of five signal-driven components (sub-50% confidence components show as "still learning" and never drag the score), the **Weekly Review** computes real weekly income/spending plus the brain's first confident insight, and the **Chat** answers affordability, income-timing, commitment-reliability and weekday questions from the model. Weekly balance snapshots feed `savingsConsistency`.
 
 Exposed to screens as `behaviorModel` from `useFinance()`. Architecture in `docs/behavioral-intelligence.md`. Tests in `lib/brain/brain.test.ts`.
 
@@ -88,7 +88,7 @@ Navigation maps to these layers: **Today** (what should I know today?) · **Patt
 - Bank connection / Open Banking
 - Authentication
 - Supabase / real database
-- Real AI chat (LLM integration)
+- Real AI chat (LLM integration — chat is currently rule-based over the behavior model)
 - Push notifications (non-functional UI removed)
 - Biometric lock / Log out
 

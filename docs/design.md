@@ -157,21 +157,22 @@ Back to personality. Sections: 30-day income heatmap (10-col grid of intensity s
 
 ### `/HealthScore` — tab: Score
 - "Layer 3 · Analyze". "Not about wealth — about consistency."
-- Radial gauge card: 71/100, "Up 4 points this week" green pill.
-- Positioning card: "A student with UGX 20,000 can score higher than someone with millions…"
-- Component breakdown: Consistency 78, Commitment reliability 84, Savings rate 52, Debt management 66 — label + value + bar.
+- Radial gauge card: score from the brain (`computeHealthScore`), with "— / score still developing" when no component is confident yet. Pill reads "X of 5 components confident".
+- Positioning card: "A student with UGX 20,000 can score higher than someone with millions…" + explainer that sub-50%-confidence components count as "still learning" and never drag the score down.
+- Component breakdown from `lib/brain/health.ts`: Consistency (incomeRegularity + spendingStability, 25%), Commitment reliability (25%), Savings rate (20%), Debt management (100 − debtPressure, 20%), Resilience (10%). Each row shows value + confidence pill ("80% confident" / "still learning") with an n= sample size note, or "No data yet — record … to start."
 
 ### `/WeeklyReview` — tab: Coach
-- "Layer 4 · Coach", date range. Income / Spending stat pair ("18% below last week" / "Steady vs last week").
-- Income vs spending grouped bar chart (Mon–Sun).
-- **Coaching insight hero** (orange): "You stayed within your food budget despite earning less this week." + supporting text (consistency reduces reliance on borrowing; Cell contribution = most reliable habit).
-- "Looking ahead to next week" card with probabilistic phrasing ("there's a good chance you'll receive a freelance payment around Thursday").
+- "Layer 4 · Coach", date range from `formatWeekRange`.
+- Income / Spending stat pair computed from real transactions for this and the previous 7-day window (`weeklyTotals`), with honest captions: "% vs last week", "First week of data", "Nothing recorded yet".
+- Income vs spending grouped bar chart (last 7 days, `dailyTotals`).
+- **Coaching insight hero** (orange): renders the brain's first confident insight (e.g. commitments-strong, savings-habit) with the current state line ("Currently stable — your buffer covers roughly 15 days of essentials"); falls back to an honest "Nafaka is still learning your patterns this week" when no insight has reached confidence.
+- "Looking ahead to next week" card: probabilistic phrasing driven by `incomeRegularity` (regularity copy when enough income events, otherwise "still learning your income rhythm") plus upcoming commitments total.
 
 ### `/AIChat` — tab: Chat
-- "Ask your coach" header with back link. Personalized greeting with user's name.
-- Message bubbles: AI = card with green sparkle avatar, `rounded-bl-sm`; user = orange, right-aligned, `rounded-br-sm`. AI messages can embed charts (Sunday spending mini bar chart).
+- "Ask your coach" header with back link. Personalized greeting built from the brain (`buildGreeting`: records seen + confidence tier).
+- Message bubbles: AI = card with green sparkle avatar, `rounded-bl-sm`; user = orange, right-aligned, `rounded-br-sm`. AI messages can embed charts (last-7-days spending mini bar chart from real data).
 - Suggestion chips (scrollable): "Can I afford this today?" / "Why did I overspend on Sunday?" / "When will I likely get paid next?" / "How is my Cell reliability doing?"
-- Keyword routing: questions containing "sunday/overspend" return the charted pattern answer; otherwise a "looks manageable" response. 600ms simulated delay.
+- Answers via `answerQuestion` in `lib/brain/chat.ts`: afford (parses amounts, compares to safe-to-spend), weekday breakdown (honest when < 3 days of data), income timing (refuses to guess dates until the rhythm is learned), commitment reliability (real reliability %), and an overview fallback (state + balance + safe-to-spend). 600ms simulated delay; footer shows current state, runway and confidence.
 
 ### `/Feedback` (floating button on all pages)
 `components/FeedbackButton.tsx` — persistent floating feedback entry point for testers (per `testing-session-script.md`).
@@ -180,10 +181,10 @@ Back to personality. Sections: 30-day income heatmap (10-col grid of intensity s
 
 ## State & Data (Design Implications)
 
-- **`lib/store.tsx`** — React Context (`FinancialProvider`) with pure money math (`computeBalance`, `computeUpcomingTotal`, `computeSafeToSpend`) in `lib/utils.ts`; tests in `lib/money.test.ts`. Also: commitment lifecycle (`status: upcoming | fulfilled | missed`), weekly balance snapshots (3 seeded past weeks + current week derived from live balance), and `behaviorModel` computed from the brain.
+- **`lib/store.tsx`** — React Context (`FinancialProvider`) with pure money math (`computeBalance`, `computeUpcomingTotal`, `computeSafeToSpend`) in `lib/utils.ts`; tests in `lib/money.test.ts`. Also: commitment lifecycle (`status: upcoming | fulfilled | missed`), weekly balance snapshots (6 seeded past weeks + current week derived from live balance), and `behaviorModel` computed from the brain.
 - **Safe-to-spend is the single most important number in the UI** and is surfaced on the dashboard hero, onboarding insight, and both Add flows' confirmation copy.
-- **Honesty by design:** FinancialPersonality renders what the brain actually knows, with confidence % and "still learning" states instead of invented demo facts. Marking a commitment paid/missed changes the real `commitmentReliability` signal.
-- No persistence: hardcoded demo data (Freelancer profile, 3 transactions, cell + offering commitments, 2 goals, 3 network people). State resets on refresh — acceptable for Phase 0.
+- **Honesty by design:** Health Score, Weekly Review, and AI Chat render what the brain actually knows, with confidence %, sample sizes and "still learning" states instead of invented demo facts. Marking a commitment paid/missed changes the real `commitmentReliability` signal and moves the Health Score.
+- No persistence: hardcoded demo data (Freelancer profile, 3 transactions, 7 commitments incl. past outcomes, 2 goals, 3 network people, 6 past snapshots). State resets on refresh — acceptable for Phase 0.
 - Deleting a transaction is a two-step pattern (tap row → Delete) to prevent accidental loss.
 
 ---
@@ -195,7 +196,7 @@ Back to personality. Sections: 30-day income heatmap (10-col grid of intensity s
 - No onboarding persistence → profile always starts as demo "Freelancer"; archetype remains a fixed box until onboarding is reframed ("how does money behave in your life?")
 - No charts on FinancialPersonality (insight cards only)
 - Heatmap is a hardcoded 30-day array, not derived from store
-- Health Score and Weekly Review still show static demo numbers (score components should consume signals with confidence weighting next)
+- Health Score trend ("Up 4 points") is a future improvement surface — score currently renders from signals without week-over-week trend history
 - Animations are minimal (progress bar, hover transitions) — no page transitions, no skeleton loaders
 - Uganda-specific commitment labels are hardcoded; contextual commitment library (global intelligence + local context) is future work
 

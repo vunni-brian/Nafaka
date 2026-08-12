@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useMemo } from 'react'
 import BottomNav from '@/components/BottomNav'
 import { useGoogleFont } from '@/lib/fonts'
 import { useFinance } from '@/lib/store'
@@ -8,6 +8,9 @@ import { Sparkles, Send, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { Bar, BarChart, CartesianGrid, XAxis, ResponsiveContainer } from 'recharts'
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart'
+import { storeTransactionsToBrain } from '@/lib/brain/adapters'
+import { answerQuestion, buildGreeting, type ChatContext, type ChatReply } from '@/lib/brain/chat'
+import { stateLabel } from '@/lib/brain/describe'
 
 interface Message {
   id: number
@@ -15,16 +18,6 @@ interface Message {
   text: string
   chart?: { day: string; amount: number }[]
 }
-
-const sundayData = [
-  { day: 'Mon', amount: 8000 },
-  { day: 'Tue', amount: 6500 },
-  { day: 'Wed', amount: 9000 },
-  { day: 'Thu', amount: 7200 },
-  { day: 'Fri', amount: 8800 },
-  { day: 'Sat', amount: 11000 },
-  { day: 'Sun', amount: 24500 },
-]
 
 const chartConfig = {
   amount: { label: 'Spent', color: 'var(--color-primary)' },
@@ -40,19 +33,27 @@ const suggestions = [
 export default function AIChat() {
   const display = useGoogleFont('Fraunces')
   const body = useGoogleFont('Manrope')
-  const { profile } = useFinance()
+  const { profile, balance, safeToSpend, upcomingTotal, behaviorModel, transactions } = useFinance()
 
-  const greeting = `Hi ${profile.name.charAt(0).toUpperCase() + profile.name.slice(1)}. I've been looking at your last few weeks — happy to answer anything about your money. You can ask me things like "can I afford lunch today" or "why did I run low last Sunday".`
+  const ctx = useMemo<ChatContext>(
+    () => ({
+      name: profile.name,
+      balance,
+      safeToSpend,
+      upcomingTotal,
+      model: behaviorModel,
+      transactions: storeTransactionsToBrain(transactions),
+    }),
+    [profile.name, balance, safeToSpend, upcomingTotal, behaviorModel, transactions],
+  )
 
-  const demoMessages: Message[] = [
-    { id: 1, role: 'ai', text: greeting },
+  const [messages, setMessages] = useState<Message[]>(() => [
+    { id: 1, role: 'ai', text: buildGreeting(ctx) },
     { id: 2, role: 'user', text: 'Can I afford to buy data worth 10,000 today?' },
-    { id: 3, role: 'ai', text: "Yes, that fits. After your Wednesday Cell contribution and food for the next two days, you'd still have about UGX 14,200 left. Just know Thursday is usually a no-income day for you, so keep that in mind." },
-  ]
-
-  const [messages, setMessages] = useState<Message[]>(demoMessages)
+    { id: 3, role: 'ai', text: answerQuestion('Can I afford to buy data worth 10,000 today?', ctx).text },
+  ])
   const [input, setInput] = useState('')
-  const nextId = useRef(demoMessages.length + 1)
+  const nextId = useRef(4)
 
   const send = (text: string) => {
     if (!text.trim()) return
@@ -60,23 +61,17 @@ export default function AIChat() {
     const userMsg: Message = { id, role: 'user', text }
     setMessages((prev) => [...prev, userMsg])
     setInput('')
-    const isSundayQuestion = /sunday|overspend/i.test(text)
     setTimeout(() => {
+      const reply: ChatReply = answerQuestion(text, ctx)
       const aiId = nextId.current++
       setMessages((prev) => [
         ...prev,
-        isSundayQuestion
-          ? {
-              id: aiId,
-              role: 'ai',
-              text: "Here's your spending across last week. Sunday came in at UGX 24,500 — about 2.5x your daily average, mostly post-service meals with friends. It's a pattern, not a slip-up.",
-              chart: sundayData,
-            }
-          : {
-              id: aiId,
-              role: 'ai',
-              text: "Based on your pattern, that looks manageable right now. I'll flag it if anything shifts your safe-to-spend amount.",
-            },
+        {
+          id: aiId,
+          role: 'ai',
+          text: reply.text,
+          ...(reply.chart ? { chart: reply.chart } : {}),
+        },
       ])
     }, 600)
   }
@@ -173,9 +168,18 @@ export default function AIChat() {
             <Send size={15} />
           </button>
         </form>
+
+        <p className="text-[11px] text-muted-foreground mt-3 text-center">
+          Currently {stateLabel(behaviorModel.state)} · {formatDistance(behaviorModel.stateDetail.runwayDays)} runway · {Math.round(behaviorModel.confidence * 100)}% confidence
+        </p>
       </div>
 
       <BottomNav active="chat" />
     </div>
   )
+}
+
+function formatDistance(runwayDays: number): string {
+  if (!Number.isFinite(runwayDays) || runwayDays >= 999) return 'long'
+  return `${Math.round(runwayDays)} days`
 }

@@ -113,6 +113,11 @@ const defaultTransactions: Transaction[] = [
 const defaultCommitments: Commitment[] = [
   { id: 1, label: 'Cell meeting', when: 'Tomorrow', amount: 5000, status: 'upcoming' },
   { id: 2, label: 'Sunday offering', when: 'In 3 days', amount: 10000, status: 'upcoming' },
+  { id: 50, label: 'Cell meeting', when: '1 week ago', amount: 5000, status: 'fulfilled' },
+  { id: 51, label: 'Cell meeting', when: '2 weeks ago', amount: 5000, status: 'fulfilled' },
+  { id: 52, label: 'Cell meeting', when: '3 weeks ago', amount: 5000, status: 'fulfilled' },
+  { id: 53, label: 'Sunday offering', when: '2 weeks ago', amount: 10000, status: 'fulfilled' },
+  { id: 54, label: 'Debt repayment', when: '4 weeks ago', amount: 15000, status: 'missed' },
 ]
 
 const defaultGoals: Goal[] = [
@@ -134,9 +139,12 @@ function mondayOfWeek(weeksAgo: number): string {
 }
 
 const defaultSnapshots: WeeklySnapshot[] = [
-  { id: 1, date: mondayOfWeek(3), balance: 70000 },
-  { id: 2, date: mondayOfWeek(2), balance: 72000 },
-  { id: 3, date: mondayOfWeek(1), balance: 74500 },
+  { id: 1, date: mondayOfWeek(6), balance: 60000 },
+  { id: 2, date: mondayOfWeek(5), balance: 63000 },
+  { id: 3, date: mondayOfWeek(4), balance: 66000 },
+  { id: 4, date: mondayOfWeek(3), balance: 69000 },
+  { id: 5, date: mondayOfWeek(2), balance: 72000 },
+  { id: 6, date: mondayOfWeek(1), balance: 74500 },
 ]
 
 // ── Context ──────────────────────────────────────────────────────────────────

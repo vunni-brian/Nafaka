@@ -1,4 +1,34 @@
-import type { ConfidenceTier } from './types'
+import type { ConfidenceTier, FinancialState } from './types'
+
+export function stateLabel(state: FinancialState): string {
+  switch (state) {
+    case 'EMERGENCY':
+      return 'emergency'
+    case 'SURVIVAL':
+      return 'survival mode'
+    case 'RECOVERY':
+      return 'recovery'
+    case 'STABLE':
+      return 'stable'
+    case 'GROWTH':
+      return 'growth'
+  }
+}
+
+export function stateCopy(state: FinancialState): string {
+  switch (state) {
+    case 'EMERGENCY':
+      return 'Balance is at or below zero. Essentials come first.'
+    case 'SURVIVAL':
+      return 'The buffer covers only a few days of essentials. Protect food and shelter.'
+    case 'RECOVERY':
+      return 'Running a thin buffer while building back toward safety.'
+    case 'STABLE':
+      return 'A comfortable buffer of essentials sits behind you.'
+    case 'GROWTH':
+      return 'The buffer stretches months ahead.'
+  }
+}
 
 export function tierLabel(tier: ConfidenceTier): string {
   switch (tier) {
