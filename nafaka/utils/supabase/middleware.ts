@@ -33,8 +33,5 @@ export const createClient = async (request: NextRequest) => {
     },
   )
 
-  // Keeps the session refreshed so auth cookies stay valid
-  await supabase.auth.getUser()
-
-  return supabaseResponse
+  return { supabase, response: supabaseResponse }
 }

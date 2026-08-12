@@ -2,22 +2,43 @@
 
 import React, { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import BottomNav from '@/components/BottomNav'
 import { useGoogleFont } from '@/lib/fonts'
 import { useFinance } from '@/lib/store'
-import { ChevronLeft, ChevronRight, Sparkles, Laptop, Check } from 'lucide-react'
+import { createClient } from '@/utils/supabase/client'
+import { ChevronLeft, ChevronRight, Sparkles, Laptop, Check, LogOut } from 'lucide-react'
 
 export default function Profile() {
   const display = useGoogleFont('Fraunces')
   const body = useGoogleFont('Manrope')
+  const router = useRouter()
   const { profile, setProfileName } = useFinance()
 
   const [editing, setEditing] = useState(false)
   const [nameDraft, setNameDraft] = useState(profile.name)
+  const [email, setEmail] = useState<string | null>(null)
+  const [signingOut, setSigningOut] = useState(false)
 
   const handleSaveName = () => {
     if (nameDraft.trim().length > 0) setProfileName(nameDraft.trim())
     setEditing(false)
+  }
+
+  React.useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? null))
+  }, [])
+
+  const handleSignOut = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (signingOut) return
+    setSigningOut(true)
+    // The route handler clears cookies and redirects to /login
+    const res = await fetch('/auth/signout', { method: 'POST' })
+    if (res.redirected) router.push(res.url)
+    else router.push('/login')
+    router.refresh()
   }
 
   return (
@@ -73,7 +94,7 @@ export default function Profile() {
                 </button>
               </div>
             )}
-            <p className="text-xs text-muted-foreground mt-0.5">Demo account</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{email ?? 'Demo account'}</p>
           </div>
         </div>
 
@@ -121,6 +142,17 @@ export default function Profile() {
           </div>
           <ChevronRight size={16} className="text-muted-foreground" />
         </Link>
+
+        <form onSubmit={handleSignOut}>
+          <button
+            type="submit"
+            disabled={signingOut}
+            className="cursor-pointer w-full flex items-center justify-center gap-2 rounded-full border border-border text-foreground font-semibold py-3.5 text-sm hover:bg-muted transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            <LogOut size={16} />
+            {signingOut ? 'Signing out…' : 'Sign out'}
+          </button>
+        </form>
       </div>
 
       <BottomNav active="home" />
