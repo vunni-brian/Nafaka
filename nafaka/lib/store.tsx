@@ -28,6 +28,8 @@ export type Commitment = {
   when: string
   amount: number
   status: CommitmentStatus
+  /** id of the expense transaction recorded when this commitment was settled */
+  settledTxId?: number
 }
 
 export type WeeklySnapshot = {
@@ -72,6 +74,14 @@ export function computeUpcomingTotal(commitments: Commitment[]): number {
 
 export function computeSafeToSpend(balance: number, upcomingTotal: number): number {
   return Math.max(0, balance - upcomingTotal)
+}
+
+export function computeShortfall(balance: number, upcomingTotal: number): number {
+  return Math.max(0, upcomingTotal - balance)
+}
+
+export function isValidAmount(n: number): boolean {
+  return Number.isFinite(n) && Number.isInteger(n) && n > 0
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -161,6 +171,8 @@ type FinancialContextValue = {
   balance: number
   upcomingTotal: number
   safeToSpend: number
+  /** how much upcoming commitments exceed the current balance, when they do */
+  shortfall: number
 
   commitments: Commitment[]
   addCommitment: (label: string, when: string, amount: number) => void
@@ -209,6 +221,7 @@ export function FinancialProvider({ children }: { children: ReactNode }) {
   const balance = computeBalance(transactions)
   const upcomingTotal = computeUpcomingTotal(commitments)
   const safeToSpend = computeSafeToSpend(balance, upcomingTotal)
+  const shortfall = computeShortfall(balance, upcomingTotal)
 
   const snapshotsForBrain = useMemo(() => {
     const current: WeeklySnapshot = { id: 0, date: mondayOfWeek(0), balance }
@@ -231,11 +244,13 @@ export function FinancialProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const addIncome = useCallback((amount: number, source: string, note: string) => {
+    if (!isValidAmount(amount)) return
     const tx: Transaction = { id: ++nextTxId, type: 'income', amount, label: source, note, time: timeNow(), recordedAt: new Date().toISOString() }
     setTransactions((prev) => [tx, ...prev])
   }, [])
 
   const addExpense = useCallback((amount: number, category: string, note: string) => {
+    if (!isValidAmount(amount)) return
     const tx: Transaction = { id: ++nextTxId, type: 'expense', amount, label: category, category, note, time: timeNow(), recordedAt: new Date().toISOString() }
     setTransactions((prev) => [tx, ...prev])
   }, [])
@@ -245,12 +260,35 @@ export function FinancialProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const addCommitment = useCallback((label: string, when: string, amount: number) => {
+    if (!isValidAmount(amount)) return
     setCommitments((prev) => [...prev, { id: ++nextCommitmentId, label, when, amount, status: 'upcoming' }])
   }, [])
 
   const setCommitmentStatus = useCallback((id: number, status: CommitmentStatus) => {
-    setCommitments((prev) => prev.map((c) => (c.id === id ? { ...c, status } : c)))
-  }, [])
+    const target = commitments.find((c) => c.id === id)
+    if (!target || target.status === status) return
+    if (status === 'fulfilled') {
+      const txId = ++nextTxId
+      setTransactions((prev) => [
+        {
+          id: txId,
+          type: 'expense',
+          amount: target.amount,
+          label: target.label,
+          category: 'commitment',
+          time: timeNow(),
+          recordedAt: new Date().toISOString(),
+        },
+        ...prev,
+      ])
+      setCommitments((prev) => prev.map((c) => (c.id === id ? { ...c, status, settledTxId: txId } : c)))
+    } else if (target.status === 'fulfilled') {
+      if (target.settledTxId) setTransactions((prev) => prev.filter((t) => t.id !== target.settledTxId))
+      setCommitments((prev) => prev.map((c) => (c.id === id ? { ...c, status, settledTxId: undefined } : c)))
+    } else {
+      setCommitments((prev) => prev.map((c) => (c.id === id ? { ...c, status } : c)))
+    }
+  }, [commitments])
 
   const addGoal = useCallback((label: string, target: number) => {
     setGoals((prev) => [...prev, { id: ++nextGoalId, label, current: 0, target }])
@@ -278,7 +316,7 @@ export function FinancialProvider({ children }: { children: ReactNode }) {
       value={{
         profile, setProfileName,
         transactions, addIncome, addExpense, deleteTransaction,
-        balance, upcomingTotal, safeToSpend,
+        balance, upcomingTotal, safeToSpend, shortfall,
       commitments, addCommitment, setCommitmentStatus,
       goals, addGoal,
       network, addNetworkEntry,

@@ -8,6 +8,7 @@ export type ChatContext = {
   balance: number
   safeToSpend: number
   upcomingTotal: number
+  shortfall: number
   model: BehaviorModel
   transactions: BrainTransaction[]
 }
@@ -57,7 +58,7 @@ export function answerQuestion(question: string, ctx: ChatContext): ChatReply {
 }
 
 function affordReply(question: string, ctx: ChatContext): ChatReply {
-  const { safeToSpend, upcomingTotal, model } = ctx
+  const { safeToSpend, upcomingTotal, shortfall, model } = ctx
   const match = question.replace(/,/g, '').match(/\d+(\.\d+)?/)
   const requested = match ? Number(match[0]) : null
   const essentials = model.stateDetail.dailyEssentialCost
@@ -66,7 +67,13 @@ function affordReply(question: string, ctx: ChatContext): ChatReply {
   if (requested === null) {
     text = `Today you have about ${formatMoney(safeToSpend)} safe to spend after ${formatMoney(
       upcomingTotal,
-    )} of commitments ahead. Essentials run roughly ${formatMoney(essentials)} a day.`
+    )} of commitments ahead. Essentials run roughly ${formatMoney(essentials)} a day.${
+      shortfall > 0 ? ` Note: commitments currently exceed your balance by ${formatMoney(shortfall)}.` : ''
+    }`
+  } else if (shortfall > 0) {
+    text = `That's not possible right now — your commitments (${formatMoney(
+      upcomingTotal,
+    )}) exceed your balance by ${formatMoney(shortfall)}. Essentials come first; I'd hold off until income arrives.`
   } else if (requested <= safeToSpend) {
     text = `That fits. After your commitments (${formatMoney(
       upcomingTotal,
@@ -154,13 +161,17 @@ function commitmentReply(ctx: ChatContext): ChatReply {
 }
 
 function overviewReply(ctx: ChatContext): ChatReply {
-  const { model, balance, safeToSpend, upcomingTotal } = ctx
+  const { model, balance, safeToSpend, upcomingTotal, shortfall } = ctx
   return {
     text: `Right now you're ${stateLabel(model.state)} \u2014 ${formatMoney(balance)} on hand, ${formatMoney(
       safeToSpend,
     )} safe to spend after ${formatMoney(upcomingTotal)} of commitments. ${
       model.stateDetail.runwayDays < 999
         ? `Your buffer covers roughly ${model.stateDetail.runwayDays} days of essentials.`
+        : ''
+    }${
+      shortfall > 0
+        ? ` ${formatMoney(shortfall)} of upcoming commitments is not yet covered by your balance.`
         : ''
     }`,
   }

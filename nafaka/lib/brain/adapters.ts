@@ -2,17 +2,21 @@ import { addDays, toISODate } from './stats'
 import type { BrainCommitment, BrainSnapshot, BrainTransaction } from './types'
 import type { Commitment, Transaction, WeeklySnapshot } from '../store'
 
+function relativeDays(lower: string): number | null {
+  const days = lower.match(/(\d+)\s+days?\s+ago/)
+  if (days) return Number(days[1])
+  const weeks = lower.match(/(\d+)\s+weeks?\s+ago/)
+  if (weeks) return Number(weeks[1]) * 7
+  return null
+}
+
 function dateFromTime(time: string, now: Date): string {
   const lower = time.toLowerCase()
   if (lower.startsWith('today')) return toISODate(now)
-  if (lower.startsWith('yesterday')) {
-    const d = new Date(now)
-    d.setDate(d.getDate() - 1)
-    return toISODate(d)
-  }
-  const d = new Date(now)
-  d.setDate(d.getDate() - 2)
-  return toISODate(d)
+  if (lower.startsWith('yesterday')) return addDays(toISODate(now), -1)
+  const ago = relativeDays(lower)
+  if (ago !== null) return addDays(toISODate(now), -ago)
+  return addDays(toISODate(now), -2)
 }
 
 function dateFromWhen(when: string, now: Date): string {
@@ -21,6 +25,8 @@ function dateFromWhen(when: string, now: Date): string {
   if (lower.startsWith('tomorrow')) return addDays(toISODate(now), 1)
   const match = lower.match(/in\s+(\d+)\s+day/)
   if (match) return addDays(toISODate(now), Number(match[1]))
+  const ago = relativeDays(lower)
+  if (ago !== null) return addDays(toISODate(now), -ago)
   return addDays(toISODate(now), 7)
 }
 

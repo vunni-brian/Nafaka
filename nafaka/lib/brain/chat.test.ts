@@ -13,7 +13,7 @@ function iso(dayOffset: number): string {
   return `${y}-${m}-${day}`
 }
 
-function ctx(overrides: { transactions?: BrainTransaction[]; commitments?: BrainCommitment[]; balance?: number } = {}): ChatContext {
+function ctx(overrides: { transactions?: BrainTransaction[]; commitments?: BrainCommitment[]; balance?: number; shortfall?: number } = {}): ChatContext {
   const transactions = overrides.transactions ?? []
   const commitments = overrides.commitments ?? []
   const balance = overrides.balance ?? 75000
@@ -23,6 +23,7 @@ function ctx(overrides: { transactions?: BrainTransaction[]; commitments?: Brain
     balance,
     safeToSpend: 60000,
     upcomingTotal: 15000,
+    shortfall: overrides.shortfall ?? Math.max(0, 15000 - balance),
     model,
     transactions,
   }
@@ -71,6 +72,12 @@ describe('answerQuestion — affordability', () => {
   it('does not count the earned amount against itself when asked generically', () => {
     const reply = answerQuestion('Can I afford this today?', ctx())
     expect(reply.text).not.toContain('exceed')
+  })
+
+  it('says no when commitments already exceed the balance', () => {
+    const reply = answerQuestion('Can I buy data worth 10,000 today?', ctx({ balance: 10000, shortfall: 5000 }))
+    expect(reply.text).toContain("not possible right now")
+    expect(reply.text).toContain('UGX 5,000')
   })
 })
 

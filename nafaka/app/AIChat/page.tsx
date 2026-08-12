@@ -33,7 +33,7 @@ const suggestions = [
 export default function AIChat() {
   const display = useGoogleFont('Fraunces')
   const body = useGoogleFont('Manrope')
-  const { profile, balance, safeToSpend, upcomingTotal, behaviorModel, transactions } = useFinance()
+  const { profile, balance, safeToSpend, upcomingTotal, shortfall, behaviorModel, transactions } = useFinance()
 
   const ctx = useMemo<ChatContext>(
     () => ({
@@ -41,10 +41,11 @@ export default function AIChat() {
       balance,
       safeToSpend,
       upcomingTotal,
+      shortfall,
       model: behaviorModel,
       transactions: storeTransactionsToBrain(transactions),
     }),
-    [profile.name, balance, safeToSpend, upcomingTotal, behaviorModel, transactions],
+    [profile.name, balance, safeToSpend, upcomingTotal, shortfall, behaviorModel, transactions],
   )
 
   const [messages, setMessages] = useState<Message[]>(() => [
