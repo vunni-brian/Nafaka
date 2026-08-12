@@ -7,6 +7,17 @@ import { useGoogleFont } from '@/lib/fonts'
 import { createClient } from '@/utils/supabase/client'
 import { Sparkles, Mail, Lock, LogIn, UserPlus } from 'lucide-react'
 
+function GoogleIcon({ size = 17 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+      <path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47a5.57 5.57 0 0 1-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z" />
+      <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09A11.99 11.99 0 0 0 12 24z" />
+      <path fill="#FBBC05" d="M5.27 14.29A7.2 7.2 0 0 1 4.89 12c0-.8.14-1.57.38-2.29V6.62H1.29a11.99 11.99 0 0 0 0 10.76l3.98-3.09z" />
+      <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42A11.99 11.99 0 0 0 1.29 6.62l3.98 3.09C6.22 6.86 8.87 4.75 12 4.75z" />
+    </svg>
+  )
+}
+
 function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -21,6 +32,25 @@ function LoginForm() {
   const [error, setError] = useState<string | null>(searchParams.get('error') === 'auth' ? 'Sign-in failed. Please try again.' : null)
 
   const next = searchParams.get('next') ?? '/DailySnapshot'
+
+  const handleGoogle = async () => {
+    if (loading) return
+    setLoading(true)
+    setError(null)
+    setMessage(null)
+
+    const supabase = createClient()
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?next=${next}`,
+      },
+    })
+    if (error) {
+      setError(error.message.replace(/^supabase/i, '').trim())
+      setLoading(false)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -143,6 +173,22 @@ function LoginForm() {
               )}
             </button>
           </form>
+
+          <div className="flex items-center gap-3 my-6" role="separator">
+            <div className="h-px flex-1 bg-border" />
+            <span className="text-xs text-muted-foreground">or</span>
+            <div className="h-px flex-1 bg-border" />
+          </div>
+
+          <button
+            type="button"
+            onClick={handleGoogle}
+            disabled={loading}
+            className="cursor-pointer w-full flex items-center justify-center gap-3 rounded-full border border-border bg-card text-foreground font-semibold py-4 text-base hover:bg-card/70 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            <GoogleIcon />
+            Continue with Google
+          </button>
 
           <button
             type="button"

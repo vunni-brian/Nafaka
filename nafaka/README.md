@@ -38,7 +38,20 @@ npm run test       # Run money math tests
 npm run build      # Production build
 ```
 
-The prototype uses hardcoded demo data. Add income/expense, set commitments, and watch the safe-to-spend amount update in real time.
+Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` in `.env.local`.
+
+## Authentication
+
+- Email/password sign in and sign up on `/login` (Supabase Auth, RLS-protected)
+- Google OAuth sign-in on `/login` (provider enabled on the hosted project; console OAuth client must allow the Supabase callback URL)
+- `proxy.ts` refreshes sessions and redirects signed-out visitors to `/login`
+- All routes except `/`, `/login`, and `/auth/*` require a session
+
+## Persistence
+
+Each signed-in user's prototype state — profile, transactions, commitments, goals, support network — is stored as one JSONB row in `finance_states` (see `supabase/schema.sql`) with row-level security scoped to `auth.uid()`. The provider hydrates from the remote row when signed in and falls back to `localStorage` demo data when signed out, so the prototype still works without an account.
+
+The prototype uses hardcoded demo data as the default. Add income/expense, set commitments, and watch the safe-to-spend amount update in real time.
 
 ## Money math
 
@@ -67,7 +80,7 @@ Exposed to screens as `behaviorModel` from `useFinance()`. Architecture in `docs
 
 - Next.js 16 (App Router, Turbopack)
 - Tailwind CSS v4 (dark theme)
-- React Context for shared state (no backend)
+- React Context for shared state (Supabase for auth + per-user persistence)
 - Recharts for charts
 - Lucide icons
 
@@ -86,10 +99,9 @@ Navigation maps to these layers: **Today** (what should I know today?) · **Patt
 ## What's deferred
 
 - Bank connection / Open Banking
-- Authentication
-- Supabase / real database
 - Real AI chat (LLM integration — chat is currently rule-based over the behavior model)
 - Push notifications (non-functional UI removed)
 - Biometric lock / Log out
+- Server-side persistence beyond the prototype `finance_states` row
 
 Phase 0 goal: honest prototype that proves the mental model works.

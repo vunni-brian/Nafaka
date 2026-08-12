@@ -108,7 +108,7 @@ describe('answerQuestion — income timing', () => {
   })
 
   it('references the last recorded income', () => {
-    const transactions = [{ id: 1, type: 'income', amount: 85000, source: 'Freelance', date: iso(-2) }]
+    const transactions: BrainTransaction[] = [{ id: 1, type: 'income', amount: 85000, source: 'Freelance', date: iso(-2) }]
     const reply = answerQuestion('When will I get paid next?', ctx({ transactions }))
     expect(reply.text).toContain('2 days ago')
   })
@@ -137,7 +137,7 @@ describe('answerQuestion — commitments', () => {
 
 describe('answerQuestion — overview fallback', () => {
   it('summarizes balance, safe-to-spend and state', () => {
-    const transactions = [{ id: 1, type: 'expense', amount: 6000, category: 'food', date: iso(0) }]
+    const transactions: BrainTransaction[] = [{ id: 1, type: 'expense', amount: 6000, category: 'food', date: iso(0) }]
     const reply = answerQuestion('How is my money doing?', ctx({ transactions }))
     expect(reply.text).toContain('UGX 75,000')
     expect(reply.text).toContain('UGX 60,000')

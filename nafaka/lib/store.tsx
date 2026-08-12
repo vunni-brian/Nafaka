@@ -1,10 +1,12 @@
 'use client'
 
-import React, { createContext, useContext, useState, useCallback, useMemo, type ReactNode } from 'react'
+import React, { createContext, useContext, useState, useCallback, useMemo, useRef, type ReactNode } from 'react'
 import { buildBehaviorModel } from './brain'
 import { storeCommitmentsToBrain, storeSnapshotsToBrain, storeTransactionsToBrain } from './brain/adapters'
 import { toISODate } from './brain/stats'
 import type { BehaviorModel } from './brain/types'
+import type { User } from '@supabase/supabase-js'
+import { createClient } from '@/utils/supabase/client'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -196,17 +198,37 @@ export function FinancialProvider({ children }: { children: ReactNode }) {
   const [goals, setGoals] = useState<Goal[]>(defaultGoals)
   const [network, setNetwork] = useState<NetworkPerson[]>(defaultNetwork)
   const [isHydrated, setIsHydrated] = useState(false)
+  const [user, setUser] = useState<User | null>(null)
+  const lastSavedRef = useRef('')
 
   React.useEffect(() => {
-    const persisted = readPersistedFinance()
-    queueMicrotask(() => {
-      if (persisted.profile) setProfile(persisted.profile)
-      if (persisted.transactions) setTransactions(persisted.transactions)
-      if (persisted.commitments) setCommitments(persisted.commitments)
-      if (persisted.goals) setGoals(persisted.goals)
-      if (persisted.network) setNetwork(persisted.network)
-      setIsHydrated(true)
-    })
+    let cancelled = false
+    let remoteState: PersistedFinance | null = null
+    const supabase = createClient()
+
+    ;(async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (cancelled) return
+      if (user) {
+        const { data } = await supabase.from('finance_states').select('state').eq('user_id', user.id).maybeSingle()
+        if (data?.state) remoteState = data.state as PersistedFinance
+      }
+      queueMicrotask(() => {
+        if (cancelled) return
+        setUser(user)
+        const source = remoteState ?? readPersistedFinance()
+        if (source.profile) setProfile(source.profile)
+        if (source.transactions) setTransactions(source.transactions)
+        if (source.commitments) setCommitments(source.commitments)
+        if (source.goals) setGoals(source.goals)
+        if (source.network) setNetwork(source.network)
+        setIsHydrated(true)
+      })
+    })()
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   React.useEffect(() => {
@@ -215,8 +237,20 @@ export function FinancialProvider({ children }: { children: ReactNode }) {
     nextCommitmentId = Math.max(nextCommitmentId, ...commitments.map((c) => c.id))
     nextGoalId = Math.max(nextGoalId, ...goals.map((g) => g.id))
     nextNetworkId = Math.max(nextNetworkId, ...network.map((p) => p.id))
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ profile, transactions, commitments, goals, network }))
-  }, [isHydrated, profile, transactions, commitments, goals, network])
+    const state = { profile, transactions, commitments, goals, network }
+    const serialized = JSON.stringify(state)
+    if (serialized === lastSavedRef.current) return
+    lastSavedRef.current = serialized
+    window.localStorage.setItem(STORAGE_KEY, serialized)
+    if (user) {
+      createClient()
+        .from('finance_states')
+        .upsert({ user_id: user.id, state, updated_at: new Date().toISOString() })
+        .then(({ error }) => {
+          if (error) console.error('Failed to sync finance state:', error.message)
+        })
+    }
+  }, [isHydrated, user, profile, transactions, commitments, goals, network])
 
   const balance = computeBalance(transactions)
   const upcomingTotal = computeUpcomingTotal(commitments)
