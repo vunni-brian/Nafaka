@@ -218,6 +218,8 @@ type FinancialContextValue = {
   addNetworkEntry: (name: string, relationship: string, direction: 'lent' | 'borrowed', amount: number) => void
 
   behaviorModel: BehaviorModel
+  /** the signed-in Supabase user, or null while signed out */
+  user: User | null
 }
 
 const FinancialContext = createContext<FinancialContextValue | null>(null)
@@ -405,6 +407,7 @@ export function FinancialProvider({ children }: { children: ReactNode }) {
       goals, addGoal,
       network, addNetworkEntry,
       behaviorModel,
+      user,
     }}
     >
       {children}

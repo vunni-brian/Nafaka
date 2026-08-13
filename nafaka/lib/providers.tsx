@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { FinancialProvider, useFinance } from '@/lib/store'
-import { initAnalytics, pageview } from '@/lib/analytics'
+import { initAnalytics, identify, pageview, resetAnalytics } from '@/lib/analytics'
 import FeedbackButton from '@/components/FeedbackButton'
 
 function OnboardingGuard({ children }: { children: React.ReactNode }) {
@@ -29,10 +29,22 @@ function OnboardingGuard({ children }: { children: React.ReactNode }) {
 
 function Analytics() {
   const pathname = usePathname()
+  const { user } = useFinance()
+  const lastUserId = useRef<string | null>(null)
 
   useEffect(() => {
     initAnalytics()
   }, [])
+
+  useEffect(() => {
+    if (user) {
+      identify(user.id)
+      lastUserId.current = user.id
+    } else if (lastUserId.current) {
+      resetAnalytics()
+      lastUserId.current = null
+    }
+  }, [user])
 
   useEffect(() => {
     pageview()
