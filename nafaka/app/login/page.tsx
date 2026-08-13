@@ -5,7 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useGoogleFont } from '@/lib/fonts'
 import { createClient } from '@/utils/supabase/client'
-import { Sparkles, Mail, Lock, LogIn, UserPlus } from 'lucide-react'
+import { track } from '@/lib/analytics'
+import { Sparkles, Mail, Lock, LogIn, UserPlus, Smartphone, ShieldCheck } from 'lucide-react'
 
 function GoogleIcon({ size = 17 }: { size?: number }) {
   return (
@@ -24,9 +25,12 @@ function LoginForm() {
   const display = useGoogleFont('Fraunces')
   const body = useGoogleFont('Manrope')
 
-  const [mode, setMode] = useState<'signin' | 'signup'>('signin')
+  const [mode, setMode] = useState<'signin' | 'signup' | 'phone'>('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [phone, setPhone] = useState('')
+  const [otp, setOtp] = useState('')
+  const [otpSent, setOtpSent] = useState(false)
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(searchParams.get('error') === 'auth' ? 'Sign-in failed. Please try again.' : null)
@@ -49,7 +53,46 @@ function LoginForm() {
     if (error) {
       setError(error.message.replace(/^supabase/i, '').trim())
       setLoading(false)
+      return
     }
+    track('signed_in', { method: 'google' })
+  }
+
+  const handlePhoneSend = async () => {
+    if (loading) return
+    setLoading(true)
+    setError(null)
+    setMessage(null)
+
+    const supabase = createClient()
+    const { error } = await supabase.auth.signInWithOtp({
+      phone,
+      options: { shouldCreateUser: true },
+    })
+    if (error) {
+      setError(error.message.replace(/^supabase/i, '').trim())
+      setLoading(false)
+      return
+    }
+    setOtpSent(true)
+    setLoading(false)
+  }
+
+  const handlePhoneVerify = async () => {
+    if (loading) return
+    setLoading(true)
+    setError(null)
+
+    const supabase = createClient()
+    const { error } = await supabase.auth.verifyOtp({ phone, token: otp, type: 'sms' })
+    if (error) {
+      setError(error.message.replace(/^supabase/i, '').trim())
+      setLoading(false)
+      return
+    }
+    track('signed_in', { method: 'phone_otp' })
+    router.push(next)
+    router.refresh()
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -65,6 +108,7 @@ function LoginForm() {
       if (mode === 'signin') {
         const { error } = await supabase.auth.signInWithPassword({ email, password })
         if (error) throw error
+        track('signed_in', { method: 'email_password' })
         router.push(next)
         router.refresh()
       } else {
@@ -76,6 +120,7 @@ function LoginForm() {
           },
         })
         if (error) throw error
+        track('signed_up', { method: 'email' })
         setMessage('Check your inbox for a confirmation link, then sign in.')
       }
     } catch (err) {
@@ -102,14 +147,82 @@ function LoginForm() {
 
         <div className="mt-14 flex-1 flex flex-col justify-center">
           <h1 style={{ fontFamily: display }} className="text-4xl leading-[1.08] text-foreground font-medium mb-2">
-            {mode === 'signin' ? 'Welcome back' : 'Start your plan'}
+            {mode === 'signin' ? 'Welcome back' : mode === 'signup' ? 'Start your plan' : 'Sign in with your number'}
           </h1>
           <p className="text-muted-foreground text-base mb-8">
             {mode === 'signin'
               ? 'Sign in to your Nafaka account.'
-              : 'Create an account — takes about a minute.'}
+              : mode === 'signup'
+                ? 'Create an account — takes about a minute.'
+                : 'We\'ll text you a code. No email or password needed.'}
           </p>
 
+          {mode === 'phone' ? (
+            <div className="space-y-4">
+              {!otpSent ? (
+                <>
+                  <label className="block">
+                    <span className="sr-only">Phone number</span>
+                    <div className="flex items-center gap-3 bg-card border border-border rounded-2xl px-4 py-3.5 focus-within:border-primary transition-colors">
+                      <Smartphone size={17} className="text-muted-foreground shrink-0" />
+                      <input
+                        type="tel"
+                        required
+                        autoComplete="tel"
+                        inputMode="tel"
+                        placeholder="+256 700 000 000"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        className="flex-1 bg-transparent outline-none text-foreground placeholder:text-muted-foreground text-sm min-w-0"
+                      />
+                    </div>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handlePhoneSend}
+                    disabled={loading || phone.trim().length < 8}
+                    className="cursor-pointer w-full flex items-center justify-center gap-2 rounded-full bg-primary text-primary-foreground font-semibold py-4 text-base hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20 disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {loading ? <span className="animate-pulse">Please wait…</span> : <>Send code</>}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <label className="block">
+                    <span className="sr-only">Verification code</span>
+                    <div className="flex items-center gap-3 bg-card border border-border rounded-2xl px-4 py-3.5 focus-within:border-primary transition-colors">
+                      <ShieldCheck size={17} className="text-muted-foreground shrink-0" />
+                      <input
+                        type="text"
+                        required
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        placeholder="6-digit code"
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                        className="flex-1 bg-transparent outline-none text-foreground placeholder:text-muted-foreground text-sm min-w-0"
+                      />
+                    </div>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handlePhoneVerify}
+                    disabled={loading || otp.length < 4}
+                    className="cursor-pointer w-full flex items-center justify-center gap-2 rounded-full bg-primary text-primary-foreground font-semibold py-4 text-base hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20 disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {loading ? <span className="animate-pulse">Please wait…</span> : <>Verify &amp; sign in</>}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setOtpSent(false); setOtp('') }}
+                    className="cursor-pointer w-full text-center text-sm text-primary hover:underline"
+                  >
+                    Use a different number
+                  </button>
+                </>
+              )}
+            </div>
+          ) : (
           <form onSubmit={handleSubmit} className="space-y-4" noValidate>
             <label className="block">
               <span className="sr-only">Email</span>
@@ -173,6 +286,18 @@ function LoginForm() {
               )}
             </button>
           </form>
+          )}
+
+          {error && mode === 'phone' && (
+            <p role="alert" className="text-sm text-red-500 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3">
+              {error.replace(/^: /, '')}
+            </p>
+          )}
+          {message && mode === 'phone' && (
+            <p role="status" className="text-sm text-primary bg-primary/10 border border-primary/20 rounded-xl px-4 py-3">
+              {message}
+            </p>
+          )}
 
           <div className="flex items-center gap-3 my-6" role="separator">
             <div className="h-px flex-1 bg-border" />
@@ -193,14 +318,32 @@ function LoginForm() {
           <button
             type="button"
             onClick={() => {
-              setMode(mode === 'signin' ? 'signup' : 'signin')
+              setMode(mode === 'phone' ? 'signin' : mode === 'signin' ? 'signup' : 'signin')
               setError(null)
               setMessage(null)
             }}
             className="cursor-pointer mt-6 text-center text-sm text-primary hover:underline"
           >
-            {mode === 'signin' ? 'New here? Create an account' : 'Already have an account? Sign in'}
+            {mode === 'phone'
+              ? 'Prefer email? Sign in with email'
+              : mode === 'signin'
+                ? 'New here? Create an account'
+                : 'Already have an account? Sign in'}
           </button>
+
+          {mode !== 'phone' && (
+            <button
+              type="button"
+              onClick={() => {
+                setMode('phone')
+                setError(null)
+                setMessage(null)
+              }}
+              className="cursor-pointer mt-3 text-center text-sm text-muted-foreground hover:underline"
+            >
+              Use your phone number instead
+            </button>
+          )}
         </div>
 
         <p className="text-center text-xs text-muted-foreground">

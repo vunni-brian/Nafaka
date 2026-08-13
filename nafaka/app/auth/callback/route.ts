@@ -9,6 +9,8 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get('code')
   const next = searchParams.get('next') ?? '/DailySnapshot'
 
+  const response = NextResponse.redirect(`${origin}${next}`)
+
   if (code) {
     const supabase = createServerClient(supabaseUrl!, supabaseKey!, {
       cookies: {
@@ -16,8 +18,8 @@ export async function GET(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value),
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options),
           )
         },
       },
@@ -29,7 +31,7 @@ export async function GET(request: NextRequest) {
       if (isLocalEnv && forwardedHost) {
         return NextResponse.redirect(`http://${forwardedHost}${next}`)
       }
-      return NextResponse.redirect(`${origin}${next}`)
+      return response
     }
   }
 

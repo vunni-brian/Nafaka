@@ -1,10 +1,12 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import BottomNav from '@/components/BottomNav'
 import { useGoogleFont } from '@/lib/fonts'
 import { useFinance } from '@/lib/store'
+import { track } from '@/lib/analytics'
+import { generateInsights } from '@/lib/brain/insights'
 import {
   Plus,
   Minus,
@@ -31,9 +33,22 @@ const iconMap: Record<string, typeof Church> = {
 export default function DailySnapshot() {
   const display = useGoogleFont('Fraunces')
   const body = useGoogleFont('Manrope')
-  const { profile, balance, safeToSpend, transactions, commitments, deleteTransaction } = useFinance()
+  const { profile, balance, safeToSpend, transactions, commitments, deleteTransaction, behaviorModel } = useFinance()
 
   const [openRow, setOpenRow] = useState<number | null>(null)
+  const tracked = useRef(false)
+
+  const todayInsight =
+    generateInsights(behaviorModel)[0]?.text ??
+    'Nafaka is still learning your patterns this week — recording income and expenses sharpens your insights.'
+
+  useEffect(() => {
+    if (tracked.current) return
+    tracked.current = true
+    track('snapshot_viewed')
+    track('safe_to_spend_viewed', { amount: safeToSpend })
+    track('insight_viewed', { text: todayInsight })
+  }, [safeToSpend, todayInsight])
 
   const handleDelete = (id: number) => {
     deleteTransaction(id)
@@ -130,10 +145,7 @@ export default function DailySnapshot() {
             </span>
             <div>
               <p className="text-xs font-semibold text-secondary uppercase tracking-wide mb-1.5">Today&rsquo;s insight</p>
-              <p className="text-sm text-foreground leading-relaxed">
-                You&rsquo;ve kept transport spending steady this week even with less income coming in. That consistency
-                matters more than the amount.
-              </p>
+              <p className="text-sm text-foreground leading-relaxed">{todayInsight}</p>
             </div>
           </div>
         </div>

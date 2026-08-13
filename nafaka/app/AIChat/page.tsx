@@ -11,6 +11,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } f
 import { storeTransactionsToBrain } from '@/lib/brain/adapters'
 import { answerQuestion, buildGreeting, type ChatContext, type ChatReply } from '@/lib/brain/chat'
 import { stateLabel } from '@/lib/brain/describe'
+import { track } from '@/lib/analytics'
 
 interface Message {
   id: number
@@ -56,8 +57,9 @@ export default function AIChat() {
   const [input, setInput] = useState('')
   const nextId = useRef(4)
 
-  const send = (text: string) => {
+  const send = (text: string, source: 'chip' | 'typed' = 'typed') => {
     if (!text.trim()) return
+    track('chat_message_sent', { source })
     const id = nextId.current++
     const userMsg: Message = { id, role: 'user', text }
     setMessages((prev) => [...prev, userMsg])
@@ -140,7 +142,7 @@ export default function AIChat() {
           {suggestions.map((s) => (
             <button
               key={s}
-              onClick={() => send(s)}
+              onClick={() => send(s, 'chip')}
               className="shrink-0 text-xs font-medium text-foreground bg-accent/50 border border-border rounded-full px-3.5 py-2 hover:bg-accent transition-colors cursor-pointer whitespace-nowrap"
             >
               {s}

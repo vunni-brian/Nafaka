@@ -1,96 +1,52 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useGoogleFont } from '@/lib/fonts'
+import { useFinance } from '@/lib/store'
+import { buildNotifications, type AppNotification } from '@/lib/notifications'
 import {
   ChevronLeft,
   Bell,
   Church,
-  Users,
   Sparkles,
-  HeartHandshake,
-  Landmark,
   CheckCheck,
+  Sun,
 } from 'lucide-react'
 
-type NotificationItem = {
-  id: number
-  icon: typeof Bell
-  iconBg: string
-  iconColor: string
-  title: string
-  detail: string
-  time: string
-  unread: boolean
+const iconMap: Record<AppNotification['kind'], typeof Bell> = {
+  commitment: Church,
+  insight: Sparkles,
+  daily: Sun,
+  info: Bell,
 }
-
-const initialNotifications: NotificationItem[] = [
-  {
-    id: 1,
-    icon: Church,
-    iconBg: 'bg-secondary/15',
-    iconColor: 'text-secondary',
-    title: 'Sunday offering due tomorrow',
-    detail: 'UGX 10,000 is coming up. Your safe-to-spend already accounts for it.',
-    time: '2h ago',
-    unread: true,
-  },
-  {
-    id: 2,
-    icon: Sparkles,
-    iconBg: 'bg-primary/15',
-    iconColor: 'text-primary',
-    title: 'New pattern detected',
-    detail: "You've been spending more on weekends after deposits land. Worth a look.",
-    time: '5h ago',
-    unread: true,
-  },
-  {
-    id: 3,
-    icon: Users,
-    iconBg: 'bg-secondary/15',
-    iconColor: 'text-secondary',
-    title: 'Cell meeting reminder',
-    detail: 'UGX 5,000 contribution due tomorrow evening.',
-    time: '1d ago',
-    unread: true,
-  },
-  {
-    id: 4,
-    icon: HeartHandshake,
-    iconBg: 'bg-secondary/15',
-    iconColor: 'text-secondary',
-    title: 'Support network update',
-    detail: 'Grace paid back UGX 15,000. Your balance with her is now settled.',
-    time: '2d ago',
-    unread: false,
-  },
-  {
-    id: 5,
-    icon: Landmark,
-    iconBg: 'bg-primary/15',
-    iconColor: 'text-primary',
-    title: 'Debt repayment upcoming',
-    detail: 'UGX 30,000 due in 18 days. Set aside a little each week to stay ahead.',
-    time: '3d ago',
-    unread: false,
-  },
-]
 
 export default function Notifications() {
   const display = useGoogleFont('Fraunces')
   const body = useGoogleFont('Manrope')
+  const { commitments, safeToSpend, behaviorModel, profile } = useFinance()
 
-  const [notifications, setNotifications] = useState(initialNotifications)
-  const unreadCount = notifications.filter((n) => n.unread).length
+  const notifications = useMemo(
+    () =>
+      buildNotifications({
+        commitments,
+        behaviorModel,
+        safeToSpend,
+        notificationsOptIn: profile.notificationsOptIn,
+      }),
+    [commitments, behaviorModel, safeToSpend, profile.notificationsOptIn],
+  )
+
+  const [readIds, setReadIds] = useState<Set<string>>(new Set())
+  const unread = notifications.filter((n) => !readIds.has(n.id))
+  const unreadCount = unread.length
 
   const markAllRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })))
+    setReadIds(new Set(notifications.map((n) => n.id)))
   }
 
-  const markRead = (id: number) => {
-    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, unread: false } : n)))
+  const markRead = (id: string) => {
+    setReadIds((prev) => new Set(prev).add(id))
   }
 
   return (
@@ -125,27 +81,31 @@ export default function Notifications() {
         )}
 
         <div className="space-y-2.5">
-          {notifications.map(({ id, icon: Icon, iconBg, iconColor, title, detail, time, unread }) => (
-            <button
-              key={id}
-              onClick={() => markRead(id)}
-              className={`cursor-pointer w-full text-left flex items-start gap-3 rounded-2xl border px-4 py-4 transition-colors ${
-                unread ? 'border-primary/30 bg-accent/40' : 'border-border bg-card hover:bg-muted'
-              }`}
-            >
-              <span className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${iconBg}`}>
-                <Icon size={16} className={iconColor} />
-              </span>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="text-sm font-medium text-foreground">{title}</p>
-                  {unread && <span className="w-2 h-2 rounded-full bg-primary shrink-0 mt-1.5" />}
+          {notifications.map((n) => {
+            const Icon = iconMap[n.kind] ?? Bell
+            const isUnread = !readIds.has(n.id)
+            return (
+              <button
+                key={n.id}
+                onClick={() => markRead(n.id)}
+                className={`cursor-pointer w-full text-left flex items-start gap-3 rounded-2xl border px-4 py-4 transition-colors ${
+                  isUnread ? 'border-primary/30 bg-accent/40' : 'border-border bg-card hover:bg-muted'
+                }`}
+              >
+                <span className="w-9 h-9 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+                  <Icon size={16} className="text-primary" />
+                </span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-sm font-medium text-foreground">{n.title}</p>
+                    {isUnread && <span className="w-2 h-2 rounded-full bg-primary shrink-0 mt-1.5" />}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{n.detail}</p>
+                  <p className="text-[11px] text-muted-foreground/70 mt-2">Just now</p>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{detail}</p>
-                <p className="text-[11px] text-muted-foreground/70 mt-2">{time}</p>
-              </div>
-            </button>
-          ))}
+              </button>
+            )
+          })}
         </div>
 
         {notifications.length === 0 && (
@@ -153,7 +113,10 @@ export default function Notifications() {
             <span className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
               <Bell size={20} className="text-muted-foreground" />
             </span>
-            <p className="text-sm text-muted-foreground">You&rsquo;re all caught up.</p>
+            <p className="text-sm text-muted-foreground">No notifications yet.</p>
+            <p className="text-xs text-muted-foreground/70 mt-1 max-w-[24ch]">
+              Insights, commitment reminders, and your daily safe-to-spend will show up here as you use Nafaka.
+            </p>
           </div>
         )}
       </div>

@@ -2,7 +2,10 @@
 
 import React, { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useGoogleFont } from '@/lib/fonts'
+import { useFinance } from '@/lib/store'
+import { track } from '@/lib/analytics'
 import {
   GraduationCap,
   Briefcase,
@@ -38,12 +41,16 @@ export default function Onboarding() {
   const display = useGoogleFont('Fraunces')
   const body = useGoogleFont('Manrope')
 
+  const { completeOnboarding } = useFinance()
+  const router = useRouter()
+
   const [step, setStep] = useState(0)
   const [archetype, setArchetype] = useState<string | null>(null)
   const [selectedPriorities, setSelectedPriorities] = useState<string[]>([])
   const [balance, setBalance] = useState('')
   const [commitments, setCommitments] = useState({ cell: true, church: true, rent: false, debt: false })
   const [notifications, setNotifications] = useState<boolean | null>(null)
+  const [consent, setConsent] = useState(false)
 
   const totalSteps = 6
   const progress = ((step + 1) / totalSteps) * 100
@@ -55,11 +62,30 @@ export default function Onboarding() {
   }
 
   const canContinue = () => {
-    if (step === 0) return archetype !== null
+    if (step === 0) return archetype !== null && consent
     if (step === 1) return selectedPriorities.length > 0
     if (step === 2) return balance.trim().length > 0
     if (step === 4) return notifications !== null
     return true
+  }
+
+  const handleFinish = () => {
+    track('onboarding_completed', {
+      archetype,
+      priorities: selectedPriorities,
+      startingBalance: Number(balance) || 0,
+      notificationsOptIn: notifications === true,
+    })
+    track('consent_granted', { at: new Date().toISOString() })
+    completeOnboarding({
+      archetype: archetype ?? '',
+      priorities: selectedPriorities,
+      startingBalance: Number(balance) || 0,
+      commitmentFlags: commitments,
+      notificationsOptIn: notifications === true,
+      consentGivenAt: new Date().toISOString(),
+    })
+    router.push('/DailySnapshot')
   }
 
   return (
@@ -109,6 +135,32 @@ export default function Onboarding() {
                   )
                 })}
               </div>
+
+              <button
+                type="button"
+                role="checkbox"
+                aria-checked={consent}
+                onClick={() => setConsent((c) => !c)}
+                className="cursor-pointer w-full flex items-start gap-3 rounded-2xl border border-border bg-card px-4 py-3.5 mt-6 text-left transition-colors hover:bg-muted"
+              >
+                <span
+                  className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
+                    consent ? 'bg-primary border-primary' : 'border-muted-foreground/40'
+                  }`}
+                >
+                  {consent && <Check size={13} className="text-primary-foreground" />}
+                </span>
+                <span className="text-xs text-muted-foreground leading-relaxed">
+                  I agree to the{' '}
+                  <Link href="/privacy" onClick={(e) => e.stopPropagation()} className="text-primary hover:underline">
+                    Privacy Policy
+                  </Link>{' '}
+                  and{' '}
+                  <Link href="/terms" onClick={(e) => e.stopPropagation()} className="text-primary hover:underline">
+                    Terms of Service
+                  </Link>
+                </span>
+              </button>
             </div>
           )}
 
@@ -262,8 +314,22 @@ export default function Onboarding() {
               <div className="bg-card border border-border rounded-2xl p-6 text-left w-full">
                 <p className="text-xs font-semibold text-secondary uppercase tracking-wide mb-3">First insight</p>
                 <p className="text-sm text-foreground leading-relaxed">
-                  With UGX {balance || '0'} to start and cell + tithe as priorities, we&rsquo;ll protect those commitments
-                  first &mdash; then show you what&rsquo;s safe to spend on everything else.
+                  {(() => {
+                    const flags: Array<[boolean, string]> = [
+                      [commitments.cell, 'cell meetings'],
+                      [commitments.church, 'your offering'],
+                      [commitments.rent, 'rent'],
+                      [commitments.debt, 'debt repayments'],
+                    ]
+                    const chosen = flags.filter(([on]) => on).map(([, label]) => label)
+                    const protectedList =
+                      chosen.length > 1
+                        ? `${chosen.slice(0, -1).join(', ')} and ${chosen[chosen.length - 1]}`
+                        : chosen[0]
+                    return protectedList
+                      ? `With UGX ${Number(balance) || 0} to start, we&rsquo;ll protect ${protectedList} first — then show you what&rsquo;s safe to spend on everything else.`
+                      : `With UGX ${Number(balance) || 0} to start, we&rsquo;ll show you what&rsquo;s safe to spend each day — protecting essentials before anything else.`
+                  })()}
                 </p>
               </div>
             </div>
@@ -274,7 +340,7 @@ export default function Onboarding() {
           {step < totalSteps - 1 ? (
             <button
               disabled={!canContinue()}
-              onClick={() => setStep((s) => Math.min(totalSteps - 1, s + 1))}
+              onClick={() => { track('onboarding_step', { step }); setStep((s) => Math.min(totalSteps - 1, s + 1)) }}
               className={`cursor-pointer w-full rounded-full py-4 text-base font-semibold transition-colors ${
                 canContinue()
                   ? 'bg-primary text-primary-foreground hover:bg-primary/90'
@@ -284,12 +350,12 @@ export default function Onboarding() {
               Continue
             </button>
           ) : (
-            <Link
-              href="/DailySnapshot"
+            <button
+              onClick={handleFinish}
               className="cursor-pointer w-full flex items-center justify-center rounded-full bg-primary text-primary-foreground font-semibold py-4 text-base hover:bg-primary/90 transition-colors"
             >
               Enter Nafaka
-            </Link>
+            </button>
           )}
         </div>
       </div>

@@ -44,6 +44,11 @@ export type Profile = {
   name: string
   archetype: string
   priorities: string[]
+  startingBalance: number
+  commitmentFlags: { cell: boolean; church: boolean; rent: boolean; debt: boolean }
+  notificationsOptIn: boolean | null
+  onboardingCompletedAt: string | null
+  consentGivenAt: string | null
 }
 
 export type Goal = {
@@ -64,8 +69,8 @@ export type NetworkPerson = {
 
 // ── Pure money math (testable) ───────────────────────────────────────────────
 
-export function computeBalance(transactions: Transaction[]): number {
-  return transactions.reduce((sum, t) => (t.type === 'income' ? sum + t.amount : sum - t.amount), 0)
+export function computeBalance(transactions: Transaction[], startingBalance = 0): number {
+  return startingBalance + transactions.reduce((sum, t) => (t.type === 'income' ? sum + t.amount : sum - t.amount), 0)
 }
 
 export function computeUpcomingTotal(commitments: Commitment[]): number {
@@ -93,6 +98,7 @@ let nextCommitmentId = 50
 let nextGoalId = 20
 let nextNetworkId = 30
 const STORAGE_KEY = 'nafaka-finance-v1'
+const SCHEMA_VERSION = 1
 
 type PersistedFinance = Pick<FinancialContextValue, 'profile' | 'transactions' | 'commitments' | 'goals' | 'network'>
 
@@ -112,6 +118,17 @@ function readPersistedFinance(): Partial<PersistedFinance> {
   } catch {
     return {}
   }
+}
+
+const DEFAULT_PROFILE: Profile = {
+  name: 'there',
+  archetype: '',
+  priorities: [],
+  startingBalance: 0,
+  commitmentFlags: { cell: false, church: false, rent: false, debt: false },
+  notificationsOptIn: null,
+  onboardingCompletedAt: null,
+  consentGivenAt: null,
 }
 
 // ── Default data ─────────────────────────────────────────────────────────────
@@ -161,9 +178,23 @@ const defaultSnapshots: WeeklySnapshot[] = [
 
 // ── Context ──────────────────────────────────────────────────────────────────
 
+type OnboardingAnswers = {
+  archetype: string
+  priorities: string[]
+  startingBalance: number
+  commitmentFlags: Profile['commitmentFlags']
+  notificationsOptIn: boolean
+  consentGivenAt: string
+}
+
 type FinancialContextValue = {
   profile: Profile
   setProfileName: (name: string) => void
+  /** true once the user finishes onboarding; gates demo data + route guards */
+  isOnboarded: boolean
+  /** false until localStorage/Supabase hydration has resolved */
+  isHydrated: boolean
+  completeOnboarding: (answers: OnboardingAnswers) => void
 
   transactions: Transaction[]
   addIncome: (amount: number, source: string, note: string) => void
@@ -192,7 +223,7 @@ type FinancialContextValue = {
 const FinancialContext = createContext<FinancialContextValue | null>(null)
 
 export function FinancialProvider({ children }: { children: ReactNode }) {
-  const [profile, setProfile] = useState<Profile>({ name: 'there', archetype: 'Freelancer', priorities: ['Building savings', 'Paying off debt', 'Supporting family'] })
+  const [profile, setProfile] = useState<Profile>(DEFAULT_PROFILE)
   const [transactions, setTransactions] = useState<Transaction[]>(defaultTransactions)
   const [commitments, setCommitments] = useState<Commitment[]>(defaultCommitments)
   const [goals, setGoals] = useState<Goal[]>(defaultGoals)
@@ -210,14 +241,14 @@ export function FinancialProvider({ children }: { children: ReactNode }) {
       const { data: { user } } = await supabase.auth.getUser()
       if (cancelled) return
       if (user) {
-        const { data } = await supabase.from('finance_states').select('state').eq('user_id', user.id).maybeSingle()
-        if (data?.state) remoteState = data.state as PersistedFinance
+        const { data } = await supabase.from('finance_states').select('state, schema_version').eq('user_id', user.id).maybeSingle()
+        if (data?.state && (data.schema_version ?? 1) === SCHEMA_VERSION) remoteState = data.state as PersistedFinance
       }
       queueMicrotask(() => {
         if (cancelled) return
         setUser(user)
         const source = remoteState ?? readPersistedFinance()
-        if (source.profile) setProfile(source.profile)
+        if (source.profile) setProfile({ ...DEFAULT_PROFILE, ...source.profile })
         if (source.transactions) setTransactions(source.transactions)
         if (source.commitments) setCommitments(source.commitments)
         if (source.goals) setGoals(source.goals)
@@ -245,17 +276,18 @@ export function FinancialProvider({ children }: { children: ReactNode }) {
     if (user) {
       createClient()
         .from('finance_states')
-        .upsert({ user_id: user.id, state, updated_at: new Date().toISOString() })
+        .upsert({ user_id: user.id, state, schema_version: SCHEMA_VERSION, updated_at: new Date().toISOString() })
         .then(({ error }) => {
           if (error) console.error('Failed to sync finance state:', error.message)
         })
     }
   }, [isHydrated, user, profile, transactions, commitments, goals, network])
 
-  const balance = computeBalance(transactions)
+  const balance = computeBalance(transactions, profile.startingBalance)
   const upcomingTotal = computeUpcomingTotal(commitments)
   const safeToSpend = computeSafeToSpend(balance, upcomingTotal)
   const shortfall = computeShortfall(balance, upcomingTotal)
+  const isOnboarded = profile.onboardingCompletedAt !== null
 
   const snapshotsForBrain = useMemo(() => {
     const current: WeeklySnapshot = { id: 0, date: mondayOfWeek(0), balance }
@@ -275,6 +307,23 @@ export function FinancialProvider({ children }: { children: ReactNode }) {
 
   const setProfileName = useCallback((name: string) => {
     setProfile((p) => ({ ...p, name }))
+  }, [])
+
+  const completeOnboarding = useCallback((answers: OnboardingAnswers) => {
+    setProfile((p) => ({
+      ...p,
+      archetype: answers.archetype,
+      priorities: answers.priorities,
+      startingBalance: answers.startingBalance,
+      commitmentFlags: answers.commitmentFlags,
+      notificationsOptIn: answers.notificationsOptIn,
+      consentGivenAt: answers.consentGivenAt,
+      onboardingCompletedAt: new Date().toISOString(),
+    }))
+    setTransactions([])
+    setCommitments([])
+    setGoals([])
+    setNetwork([])
   }, [])
 
   const addIncome = useCallback((amount: number, source: string, note: string) => {
@@ -348,7 +397,7 @@ export function FinancialProvider({ children }: { children: ReactNode }) {
   return (
     <FinancialContext.Provider
       value={{
-        profile, setProfileName,
+        profile, setProfileName, isOnboarded, isHydrated, completeOnboarding,
         transactions, addIncome, addExpense, deleteTransaction,
         balance, upcomingTotal, safeToSpend, shortfall,
       commitments, addCommitment, setCommitmentStatus,

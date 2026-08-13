@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import { useGoogleFont } from '@/lib/fonts'
 import { useFinance } from '@/lib/store'
+import { track } from '@/lib/analytics'
 import { ChevronLeft, Laptop, Users, Landmark, Gift, Check } from 'lucide-react'
 
 const sources = [
@@ -27,6 +28,7 @@ export default function AddIncome() {
 
   const handleSave = () => {
     if (!canSave) return
+    track('income_added', { amount: Number(amount), source })
     addIncome(Number(amount), sources.find((s) => s.key === source)?.label ?? 'Unknown', note)
     setSaved(true)
   }

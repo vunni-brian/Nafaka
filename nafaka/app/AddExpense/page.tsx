@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import { useGoogleFont } from '@/lib/fonts'
 import { useFinance } from '@/lib/store'
+import { track } from '@/lib/analytics'
 import { ChevronLeft, Utensils, Bus, Church, Landmark, ShoppingBag, MoreHorizontal, Check } from 'lucide-react'
 
 const categories = [
@@ -29,6 +30,7 @@ export default function AddExpense() {
 
   const handleSave = () => {
     if (!canSave) return
+    track('expense_added', { amount: Number(amount), category })
     addExpense(Number(amount), categories.find((c) => c.key === category)?.label ?? 'Unknown', note)
     setSaved(true)
   }
