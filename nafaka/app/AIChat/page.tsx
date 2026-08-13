@@ -10,6 +10,7 @@ import { Bar, BarChart, CartesianGrid, XAxis, ResponsiveContainer } from 'rechar
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart'
 import { storeTransactionsToBrain } from '@/lib/brain/adapters'
 import { answerQuestion, buildGreeting, type ChatContext, type ChatReply } from '@/lib/brain/chat'
+import { buildLlmContext } from '@/lib/brain/llm'
 import { stateLabel } from '@/lib/brain/describe'
 import { track } from '@/lib/analytics'
 
@@ -34,7 +35,7 @@ const suggestions = [
 export default function AIChat() {
   const display = useGoogleFont('Fraunces')
   const body = useGoogleFont('Manrope')
-  const { profile, balance, safeToSpend, upcomingTotal, shortfall, behaviorModel, transactions } = useFinance()
+  const { profile, balance, safeToSpend, upcomingTotal, shortfall, behaviorModel, transactions, commitments } = useFinance()
 
   const ctx = useMemo<ChatContext>(
     () => ({
@@ -55,17 +56,22 @@ export default function AIChat() {
     { id: 3, role: 'ai', text: answerQuestion('Can I afford to buy data worth 10,000 today?', ctx).text },
   ])
   const [input, setInput] = useState('')
+  const [pending, setPending] = useState(false)
+  const busy = useRef(false)
   const nextId = useRef(4)
 
   const send = (text: string, source: 'chip' | 'typed' = 'typed') => {
-    if (!text.trim()) return
+    const question = text.trim()
+    if (!question || busy.current) return
+    busy.current = true
+    setPending(true)
     track('chat_message_sent', { source })
     const id = nextId.current++
-    const userMsg: Message = { id, role: 'user', text }
-    setMessages((prev) => [...prev, userMsg])
+    setMessages((prev) => [...prev, { id, role: 'user', text: question }])
     setInput('')
-    setTimeout(() => {
-      const reply: ChatReply = answerQuestion(text, ctx)
+
+    const answer = async (reply: ChatReply, delay = 0) => {
+      if (delay) await new Promise((resolve) => setTimeout(resolve, delay))
       const aiId = nextId.current++
       setMessages((prev) => [
         ...prev,
@@ -76,7 +82,23 @@ export default function AIChat() {
           ...(reply.chart ? { chart: reply.chart } : {}),
         },
       ])
-    }, 600)
+      setPending(false)
+      busy.current = false
+    }
+
+    fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question, context: buildLlmContext(ctx, commitments) }),
+    })
+      .then(async (res) => {
+        if (!res.ok) throw new Error('upstream')
+        const data = await res.json()
+        if (!data.text) throw new Error('empty')
+        track('chat_llm_reply')
+        await answer({ text: data.text })
+      })
+      .catch(() => answer(answerQuestion(question, ctx), 600))
   }
 
   return (
@@ -136,6 +158,18 @@ export default function AIChat() {
               </div>
             </div>
           ))}
+          {pending && (
+            <div className="flex justify-start">
+              <span className="w-7 h-7 rounded-full bg-primary/15 flex items-center justify-center text-primary shrink-0 mr-2 mt-0.5">
+                <Sparkles size={13} />
+              </span>
+              <div className="max-w-[78%] rounded-2xl px-4 py-3 bg-card border border-border text-foreground rounded-bl-sm flex gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-pulse" />
+                <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-pulse [animation-delay:150ms]" />
+                <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-pulse [animation-delay:300ms]" />
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="flex gap-2 overflow-x-auto pb-3 -mx-1 px-1 scrollbar-hide">
@@ -166,8 +200,9 @@ export default function AIChat() {
           />
           <button
             type="submit"
-            className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:opacity-90 transition-opacity cursor-pointer shrink-0"
+            className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:opacity-90 transition-opacity cursor-pointer shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Send message"
+            disabled={pending}
           >
             <Send size={15} />
           </button>
