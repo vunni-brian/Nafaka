@@ -3,7 +3,8 @@
 import React from 'react'
 import Link from 'next/link'
 import { useGoogleFont } from '@/lib/fonts'
-import { Sparkles, TrendingUp, HandHeart, ListChecks, Brain, RefreshCw } from 'lucide-react'
+import { TrendingUp, HandHeart, ListChecks, Brain, RefreshCw } from 'lucide-react'
+import Image from 'next/image'
 
 export default function Welcome() {
   const display = useGoogleFont('Fraunces')
@@ -16,9 +17,9 @@ export default function Welcome() {
       <div className="absolute bottom-0 right-0 w-80 h-80 rounded-full bg-accent/40 blur-3xl" />
 
       <div className="relative max-w-sm mx-auto min-h-screen flex flex-col px-6 pt-16 pb-10">
-        <div className="flex items-center gap-2">
-          <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center">
-            <Sparkles size={16} className="text-primary-foreground" />
+        <div className="flex items-center gap-2.5">
+          <div className="w-10 h-10 rounded-2xl overflow-hidden bg-card border border-border flex items-center justify-center shrink-0">
+            <Image src="/nafaka-logo.png" alt="Nafaka logo" width={122} height={113} className="w-full h-full object-contain" />
           </div>
           <span className="text-sm tracking-[0.2em] uppercase text-muted-foreground font-semibold">Nafaka</span>
         </div>
