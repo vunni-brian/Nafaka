@@ -7,7 +7,11 @@ const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/DailySnapshot'
+  const requestedNext = searchParams.get('next')
+  const next =
+    requestedNext && requestedNext.startsWith('/') && !requestedNext.startsWith('//')
+      ? requestedNext
+      : '/DailySnapshot'
 
   const response = NextResponse.redirect(`${origin}${next}`)
 
@@ -17,20 +21,18 @@ export async function GET(request: NextRequest) {
         getAll() {
           return request.cookies.getAll()
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet, headers) {
           cookiesToSet.forEach(({ name, value, options }) =>
             response.cookies.set(name, value, options),
           )
+          for (const [key, value] of Object.entries(headers)) {
+            response.headers.set(key, value)
+          }
         },
       },
     })
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
-      const forwardedHost = request.headers.get('x-forwarded-host')
-      const isLocalEnv = process.env.NODE_ENV === 'development'
-      if (isLocalEnv && forwardedHost) {
-        return NextResponse.redirect(`http://${forwardedHost}${next}`)
-      }
       return response
     }
   }

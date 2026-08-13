@@ -291,8 +291,9 @@ export function FinancialProvider({ children }: { children: ReactNode }) {
 
   const snapshotsForBrain = useMemo(() => {
     const current: WeeklySnapshot = { id: 0, date: mondayOfWeek(0), balance }
-    return storeSnapshotsToBrain([...defaultSnapshots, current])
-  }, [balance])
+    const healthy = user !== null && isOnboarded
+    return storeSnapshotsToBrain(healthy ? [current] : [...defaultSnapshots, current])
+  }, [balance, user, isOnboarded])
 
   const behaviorModel = useMemo(
     () =>

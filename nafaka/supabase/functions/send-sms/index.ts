@@ -1,45 +1,54 @@
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+import { Webhook } from 'https://esm.sh/standardwebhooks@1.0.0'
+
+const AT_USERNAME = Deno.env.get('AT_USERNAME')
+const AT_API_KEY = Deno.env.get('AT_API_KEY')
+
+const sendSms = async (to: string, message: string): Promise<Response> => {
+  if (!AT_USERNAME || !AT_API_KEY) {
+    return Response.json(
+      { error: { http_code: 500, message: 'AT_USERNAME or AT_API_KEY secret not configured' } },
+      { status: 500 },
+    )
+  }
+  const form = new URLSearchParams({ username: AT_USERNAME, to, message })
+  const res = await fetch('https://api.africastalking.com/version1/messaging', {
+    method: 'POST',
+    headers: {
+      apiKey: AT_API_KEY,
+      Accept: 'application/json',
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: form.toString(),
+  })
+  if (!res.ok) {
+    const data = await res.json().catch(() => null)
+    return Response.json({ error: { http_code: res.status, message: JSON.stringify(data) } }, { status: 502 })
+  }
+  return Response.json({}, { status: 200 })
 }
 
-Deno.serve(async (req: Request) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders, status: 204 })
+    return new Response('ok', { status: 204 })
   }
 
   try {
-    const body = await req.json().catch(() => ({}))
-    const phone = String(body.phone ?? '').replace(/^\+/, '')
-    const message = String(body.message ?? '')
+    const payload = await req.text()
+    const secret = Deno.env.get('SEND_SMS_HOOK_SECRET')
+    const headers = Object.fromEntries(req.headers)
+    const webhook = new Webhook((secret ?? '').replace('v1,whsec_', ''))
+    const { user, sms } = webhook.verify(payload, headers)
 
-    const username = Deno.env.get('AT_USERNAME')
-    const apiKey = Deno.env.get('AT_API_KEY')
-
-    if (!phone || !message) {
-      return Response.json({ success: false, error: 'missing phone or message' }, { status: 200 })
+    const to = String(user.phone ?? '').replace(/^\+/, '')
+    const message = `Your code is ${sms.otp}`
+    if (!to || !sms.otp) {
+      return Response.json({ error: { http_code: 400, message: 'missing phone or otp' } }, { status: 400 })
     }
-    if (!username || !apiKey) {
-      return Response.json(
-        { success: false, error: 'AT_USERNAME or AT_API_KEY secret not configured' },
-        { status: 200 },
-      )
-    }
-
-    const form = new URLSearchParams({ username, to: phone, message })
-    const res = await fetch('https://api.africastalking.com/version1/messaging', {
-      method: 'POST',
-      headers: {
-        apiKey,
-        Accept: 'application/json',
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: form.toString(),
-    })
-    const data = await res.json().catch(() => null)
-
-    return Response.json({ success: res.ok, at: data }, { status: 200 })
+    return await sendSms(to, message)
   } catch (err) {
-    return Response.json({ success: false, error: String(err) }, { status: 200 })
+    return Response.json(
+      { error: { http_code: 500, message: `Failed to send sms: ${JSON.stringify(err)}` } },
+      { status: 500 },
+    )
   }
 })

@@ -20,7 +20,7 @@ export const createClient = async (request: NextRequest) => {
         getAll() {
           return request.cookies.getAll()
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet, headers) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
           supabaseResponse = NextResponse.next({
             request,
@@ -28,6 +28,9 @@ export const createClient = async (request: NextRequest) => {
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options),
           )
+          for (const [key, value] of Object.entries(headers)) {
+            supabaseResponse.headers.set(key, value)
+          }
         },
       },
     },

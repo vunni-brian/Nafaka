@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import { MessageCircle, X, Send } from 'lucide-react'
+import { track } from '@/lib/analytics'
 
 export default function FeedbackButton() {
   const [open, setOpen] = useState(false)
@@ -10,7 +11,7 @@ export default function FeedbackButton() {
 
   const handleSend = () => {
     if (!text.trim()) return
-    console.log('[Feedback]', text)
+    track('feedback_submitted', { text: text.trim() })
     setSent(true)
     setTimeout(() => { setOpen(false); setSent(false); setText('') }, 2000)
   }
@@ -30,7 +31,7 @@ export default function FeedbackButton() {
             </button>
           </div>
           {sent ? (
-            <p className="text-sm text-secondary text-center py-4">Thanks! Feedback logged to console.</p>
+            <p className="text-sm text-secondary text-center py-4">Thanks for the feedback!</p>
           ) : (
             <>
               <p className="text-xs text-muted-foreground mb-3">

@@ -8,16 +8,30 @@ export async function proxy(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
 
   const { pathname } = request.nextUrl
-  const isPublic = pathname === '/' || pathname === '/login' || pathname.startsWith('/auth/')
+  const isPublic =
+    pathname === '/' ||
+    pathname === '/login' ||
+    pathname === '/Onboarding' ||
+    pathname === '/privacy' ||
+    pathname === '/terms' ||
+    pathname.startsWith('/auth/')
+
+  const redirectWithCookies = (url: URL) => {
+    const redirect = NextResponse.redirect(url)
+    for (const cookie of response.cookies.getAll()) {
+      redirect.cookies.set(cookie.name, cookie.value, { ...cookie })
+    }
+    return redirect
+  }
 
   if (!user && !isPublic) {
     const url = new URL('/login', request.url)
     url.searchParams.set('next', pathname)
-    return NextResponse.redirect(url)
+    return redirectWithCookies(url)
   }
 
   if (user && pathname === '/login') {
-    return NextResponse.redirect(new URL('/DailySnapshot', request.url))
+    return redirectWithCookies(new URL('/DailySnapshot', request.url))
   }
 
   return response

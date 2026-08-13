@@ -161,6 +161,7 @@ export default function AIChat() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask about your money..."
+            aria-label="Ask about your money"
             className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none py-1.5"
           />
           <button
