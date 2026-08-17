@@ -4,13 +4,13 @@ import React, { useMemo, useState } from 'react'
 import { useGoogleFont } from '@/lib/fonts'
 import { useFinance } from '@/lib/store'
 import { buildNotifications, type AppNotification } from '@/lib/notifications'
-import { Bell, Church, Sparkles, Sun, CheckCheck } from 'lucide-react'
+import { Bell, Sparkles, CalendarClock, TrendingUp, Circle } from 'lucide-react'
 import AppHeader from '@/components/AppHeader'
 
-const iconMap: Record<AppNotification['kind'], typeof Bell> = {
-  commitment: Church,
-  insight: Sparkles,
-  daily: Sun,
+const typeIcon: Record<AppNotification['kind'], typeof Bell> = {
+  insight: TrendingUp,
+  daily: Sparkles,
+  commitment: CalendarClock,
   info: Bell,
 }
 
@@ -30,72 +30,52 @@ export default function Notifications() {
   )
 
   const [readIds, setReadIds] = useState<Set<string>>(new Set())
-  const unread = notifications.filter((n) => !readIds.has(n.id))
-  const unreadCount = unread.length
+  const unreadCount = notifications.filter((n) => !readIds.has(n.id)).length
 
   const markAllRead = () => {
     setReadIds(new Set(notifications.map((n) => n.id)))
   }
 
-  const markRead = (id: string) => {
-    setReadIds((prev) => new Set(prev).add(id))
-  }
-
   return (
-    <div className="min-h-screen bg-background pb-16" style={{ fontFamily: body }}>
+    <div className="min-h-screen bg-ink-50 pb-16" style={{ fontFamily: body }}>
       <AppHeader />
-      <main className="mx-auto max-w-md px-5 pt-4 space-y-5 animate-fade-up">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="font-display text-2xl font-semibold text-ink-900">Notifications</h1>
-            <p className="text-xs text-ink-500 mt-1">
-              {unreadCount > 0 ? `${unreadCount} unread notification${unreadCount > 1 ? 's' : ''}` : 'You’re all caught up'}
-            </p>
-          </div>
-          {unreadCount > 0 && (
-            <button
-              onClick={markAllRead}
-              className="flex items-center gap-1.5 text-xs font-semibold text-brand-700 hover:text-brand-800 transition"
-            >
-              <CheckCheck size={14} />
-              Mark all read
-            </button>
-          )}
+      <main className="mx-auto max-w-md px-5 pt-4 space-y-6 animate-fade-up">
+        <div>
+          <h1 className="font-display text-2xl font-semibold text-ink-900">Notifications</h1>
+          <p className="text-sm text-ink-500 mt-1">Coaching, reminders, and milestones from Nafaka.</p>
         </div>
 
-        <div className="space-y-3">
-          {notifications.map((n) => {
-            const Icon = iconMap[n.kind] ?? Bell
-            const isUnread = !readIds.has(n.id)
-            return (
-              <button
-                key={n.id}
-                onClick={() => markRead(n.id)}
-                className={`w-full text-left flex items-start gap-3 rounded-[1.25rem] p-4 transition shadow-sm ${
-                  isUnread
-                    ? 'bg-brand-600 text-white'
-                    : 'card hover:bg-ink-50'
-                }`}
-              >
-                <span
-                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
-                    isUnread ? 'bg-white/15 text-white' : 'bg-brand-100 text-brand-700'
-                  }`}
-                >
-                  <Icon size={17} />
-                </span>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2">
-                    <p className={`text-sm font-semibold ${isUnread ? 'text-white' : 'text-ink-900'}`}>{n.title}</p>
-                    {isUnread && <span className="w-2 h-2 rounded-full bg-white shrink-0 mt-1.5" />}
+        {notifications.length > 0 && (
+          <div className="card divide-y divide-ink-100">
+            {notifications.map((n) => {
+              const Icon = typeIcon[n.kind] ?? Bell
+              const isUnread = !readIds.has(n.id)
+              return (
+                <div key={n.id} className={`flex items-start gap-3 px-4 py-3.5 ${isUnread ? 'bg-brand-50/40' : ''}`}>
+                  <span
+                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+                      n.kind === 'daily'
+                        ? 'bg-brand-100 text-brand-700'
+                        : n.kind === 'commitment'
+                        ? 'bg-accent-100 text-accent-700'
+                        : 'bg-ink-100 text-ink-600'
+                    }`}
+                  >
+                    <Icon size={16} />
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-semibold text-ink-900">{n.title}</p>
+                      {isUnread && <Circle size={7} className="fill-brand-600 text-brand-600" />}
+                    </div>
+                    <p className="text-xs text-ink-600 mt-1 leading-relaxed">{n.detail}</p>
+                    <p className="text-[10px] text-ink-400 mt-1.5">Just now</p>
                   </div>
-                  <p className={`text-xs mt-1 leading-relaxed ${isUnread ? 'text-white/80' : 'text-ink-500'}`}>{n.detail}</p>
-                  <p className={`text-[11px] mt-2 ${isUnread ? 'text-white/60' : 'text-ink-400'}`}>Just now</p>
                 </div>
-              </button>
-            )
-          })}
-        </div>
+              )
+            })}
+          </div>
+        )}
 
         {notifications.length === 0 && (
           <div className="card p-10 text-center">
@@ -107,6 +87,12 @@ export default function Notifications() {
               Insights, commitment reminders, and your daily safe-to-spend will show up here as you use Nafaka.
             </p>
           </div>
+        )}
+
+        {unreadCount > 0 && (
+          <button onClick={markAllRead} className="btn-ghost w-full">
+            Mark all as read
+          </button>
         )}
       </main>
     </div>

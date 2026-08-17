@@ -4,32 +4,40 @@ import React from 'react'
 import BottomNav from '@/components/BottomNav'
 import AppHeader from '@/components/AppHeader'
 import { useGoogleFont } from '@/lib/fonts'
-import { TrendingUp, ShieldCheck, Heart, Lock, Sparkles } from 'lucide-react'
+import { TrendingUp, ShieldCheck, Heart, Sparkles, Lock } from 'lucide-react'
 import { useFinance } from '@/lib/store'
-import { computeHealthScore } from '@/lib/brain/health'
+import { computeHealthScore, type HealthComponentKey } from '@/lib/brain/health'
 import { componentSuggestion, weakestReadyComponent } from '@/lib/brain/focus'
-import { stateLabel } from '@/lib/brain/describe'
+import { tierLabel } from '@/lib/brain/describe'
 import { Ring, SectionTitle } from '@/components/proto/ui'
 import LearningState from '@/components/proto/LearningState'
 
+const noteFor: Record<HealthComponentKey, string> = {
+  consistency: 'Spending steadiness across days',
+  commitment: 'On-time recurring payments',
+  savings: 'Balance building week over week',
+  debt: 'Obligations as a share of income',
+  resilience: 'Days of buffer for essentials',
+}
+
 export default function HealthScore() {
   const body = useGoogleFont('Manrope')
-  const { behaviorModel } = useFinance()
+  const { behaviorModel, profile } = useFinance()
 
   const health = computeHealthScore(behaviorModel)
   const score = health.score
   const weakest = weakestReadyComponent(health.components)
   const confidencePctValue = Math.round(behaviorModel.confidence * 100)
 
-  const statusColor = (status: 'good' | 'ok' | 'watch') =>
-    status === 'good' ? 'text-brand-700' : status === 'ok' ? 'text-ink-600' : 'text-accent-700'
-  const statusBg = (status: 'good' | 'ok' | 'watch') =>
-    status === 'good' ? 'bg-brand-500' : status === 'ok' ? 'bg-ink-400' : 'bg-accent-500'
+  const statusColor = (s: 'good' | 'ok' | 'watch') =>
+    s === 'good' ? 'text-brand-700' : s === 'ok' ? 'text-ink-600' : 'text-accent-700'
+  const statusBg = (s: 'good' | 'ok' | 'watch') =>
+    s === 'good' ? 'bg-brand-500' : s === 'ok' ? 'bg-ink-400' : 'bg-accent-500'
 
   // Health score unlocks at 70% confidence
   if (score === null) {
     return (
-      <div className="min-h-screen bg-background pb-28" style={{ fontFamily: body }}>
+      <div className="min-h-screen bg-ink-50 pb-28" style={{ fontFamily: body }}>
         <AppHeader />
         <main className="mx-auto max-w-md px-5 pt-4 space-y-6 animate-fade-up">
           <div>
@@ -46,15 +54,11 @@ export default function HealthScore() {
                 </span>
                 <p className="mt-4 font-display text-lg font-semibold text-ink-900">Unlocks at 70% confidence</p>
                 <p className="mt-2 text-sm text-ink-500 max-w-xs mx-auto leading-relaxed">
-                  Your Financial Health Score needs about 3 months of behavior to be accurate. Right now you&rsquo;re at{' '}
-                  {confidencePctValue}%.
+                  Your Financial Health Score needs about 3 months of behavior to be accurate. Right now you&rsquo;re at {confidencePctValue}%.
                 </p>
                 <div className="mt-4 max-w-[180px] mx-auto">
                   <div className="h-2 rounded-full bg-ink-100 overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-brand-500"
-                      style={{ width: `${confidencePctValue}%`, transition: 'width 0.8s ease' }}
-                    />
+                    <div className="h-full rounded-full bg-brand-500" style={{ width: `${confidencePctValue}%`, transition: 'width 0.8s ease' }} />
                   </div>
                   <p className="text-[11px] text-ink-400 mt-1.5">{confidencePctValue}% of 70% needed</p>
                 </div>
@@ -65,8 +69,7 @@ export default function HealthScore() {
                   <div>
                     <p className="text-sm font-semibold text-ink-900">Nafaka never punishes you</p>
                     <p className="text-xs text-ink-600 mt-1 leading-relaxed">
-                      Irregular income isn&rsquo;t bad. High spending isn&rsquo;t automatically bad. Supporting family isn&rsquo;t bad.
-                      Your score reflects behavior in context — never judgment.
+                      Irregular income isn&rsquo;t bad. High spending isn&rsquo;t automatically bad. Supporting family isn&rsquo;t bad. Your score reflects behavior in context &mdash; never judgment.
                     </p>
                   </div>
                 </div>
@@ -83,13 +86,11 @@ export default function HealthScore() {
     label: c.label,
     score: Math.round(c.value),
     status: (c.value >= 75 ? 'good' : c.value >= 50 ? 'ok' : 'watch') as 'good' | 'ok' | 'watch',
-    note: c.ready
-      ? `Based on ${c.sampleSize} observed point${c.sampleSize === 1 ? '' : 's'}`
-      : 'Still learning this dimension',
+    note: c.ready ? noteFor[c.key] : 'Still learning',
   }))
 
   return (
-    <div className="min-h-screen bg-background pb-28" style={{ fontFamily: body }}>
+    <div className="min-h-screen bg-ink-50 pb-28" style={{ fontFamily: body }}>
       <AppHeader />
       <main className="mx-auto max-w-md px-5 pt-4 space-y-6 animate-fade-up">
         <div>
@@ -99,20 +100,17 @@ export default function HealthScore() {
 
         {/* Score hero */}
         <div className="card p-6 flex flex-col items-center text-center">
-          <Ring value={score ?? 0} size={148} stroke={12} label={`${score ?? '—'}`} sublabel="of 100" tone="brand" />
+          <Ring value={score} size={148} stroke={12} label={`${score}`} sublabel="of 100" tone="brand" />
           <div className="mt-4 flex items-center gap-1.5">
             <TrendingUp size={15} className="text-brand-600" />
-            <p className="text-sm font-semibold text-brand-700">
-              {health.readyCount} of {health.totalCount} components confident
-            </p>
+            <p className="text-sm font-semibold text-brand-700">{tierLabel(behaviorModel.confidenceTier)}</p>
           </div>
           <p className="text-xs text-ink-500 mt-2 max-w-xs">
-            Your score blends resilience, commitment reliability, income stability, spending control, savings habit,
-            and social balance.
+            Your score blends resilience, commitment reliability, income stability, spending control, savings habit, and social balance.
           </p>
           <div className="mt-3">
             <span className="pill bg-brand-100 text-brand-700">
-              <Sparkles size={12} /> Based on {behaviorModel.dataPoints} records · {confidencePctValue}% confidence
+              <Sparkles size={12} /> Based on {behaviorModel.dataPoints} records &middot; {confidencePctValue}% confidence
             </span>
           </div>
         </div>
@@ -124,21 +122,21 @@ export default function HealthScore() {
               <Heart size={20} />
             </span>
             <div>
-              <p className="text-xs font-medium text-ink-500">Your financial state</p>
-              <p className="font-display text-lg font-semibold text-ink-900">{stateLabel(behaviorModel.state)}</p>
+              <p className="text-xs font-medium text-ink-500">Your emerging financial personality</p>
+              <p className="font-display text-lg font-semibold text-ink-900">
+                {profile.archetype || 'The patient builder'}
+              </p>
             </div>
           </div>
           <p className="text-xs text-ink-600 mt-3 leading-relaxed">
-            {weakest
-              ? `${componentSuggestion(weakest.key)}`
-              : 'Nafaka keeps your score honest — every dimension below carries its own confidence.'}
+            {weakest ? componentSuggestion(weakest.key) : 'Your behavior model is still assembling — keep logging and this fills in.'}
           </p>
-          <p className="text-[10px] text-ink-400 mt-2">State reflects your runway, commitments, and current situation.</p>
+          <p className="text-[10px] text-ink-400 mt-2">Locks in at 90% confidence (~3 months of data).</p>
         </div>
 
         {/* Dimensions */}
         <div>
-          <SectionTitle title="Score breakdown" hint="Behavioral dimensions" />
+          <SectionTitle title="Score breakdown" hint={`${health.readyCount} behavioral dimensions`} />
           <div className="space-y-3">
             {dimensions.map((d) => (
               <div key={d.label} className="card p-4">
@@ -168,8 +166,7 @@ export default function HealthScore() {
             <div>
               <p className="text-sm font-semibold text-ink-900">Nafaka never punishes you</p>
               <p className="text-xs text-ink-600 mt-1 leading-relaxed">
-                Irregular income isn&rsquo;t bad. High spending isn&rsquo;t automatically bad. Supporting family isn&rsquo;t bad. Every
-                insight is reframed with your context first.
+                Irregular income isn&rsquo;t bad. High spending isn&rsquo;t automatically bad. Supporting family isn&rsquo;t bad. Every insight is reframed with your context first.
               </p>
             </div>
           </div>

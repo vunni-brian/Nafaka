@@ -160,6 +160,9 @@ body {
 }
 
 @layer components {
+  .rounded-xl2 {
+    border-radius: 1.25rem;
+  }
   .card {
     @apply rounded-[1.25rem] bg-white shadow-card border border-ink-100;
   }

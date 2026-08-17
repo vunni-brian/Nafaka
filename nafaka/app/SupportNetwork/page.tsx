@@ -5,8 +5,9 @@ import BottomNav from '@/components/BottomNav'
 import AppHeader from '@/components/AppHeader'
 import { useGoogleFont } from '@/lib/fonts'
 import { useFinance } from '@/lib/store'
-import { ArrowDownLeft, ArrowUpRight, Plus, X, Check, HeartHandshake } from 'lucide-react'
+import { ArrowUpRight, ArrowDownRight, Users, Plus, X, Check } from 'lucide-react'
 import { SectionTitle } from '@/components/proto/ui'
+import { fmt } from '@/components/proto/format'
 
 type Direction = 'lent' | 'borrowed'
 
@@ -22,10 +23,8 @@ export default function SupportNetwork() {
 
   const canAdd = name.trim().length > 0 && amount.trim().length > 0
 
-  const totalOwedToYou = network.reduce((sum, p) => (p.balance > 0 ? sum + p.balance : sum), 0)
-  const totalYouOwe = network.reduce((sum, p) => (p.balance < 0 ? sum + Math.abs(p.balance) : sum), 0)
-
-  function fmt(n: number) { return `UGX ${Math.abs(n).toLocaleString()}` }
+  const totalGiven = network.reduce((sum, p) => (p.balance > 0 ? sum + p.balance : sum), 0)
+  const totalReceived = network.reduce((sum, p) => (p.balance < 0 ? sum + Math.abs(p.balance) : sum), 0)
 
   const handleAdd = () => {
     if (!canAdd) return
@@ -38,69 +37,82 @@ export default function SupportNetwork() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-28" style={{ fontFamily: body }}>
+    <div className="min-h-screen bg-ink-50 pb-28" style={{ fontFamily: body }}>
       <AppHeader />
       <main className="mx-auto max-w-md px-5 pt-4 space-y-6 animate-fade-up">
         <div>
           <h1 className="font-display text-2xl font-semibold text-ink-900">Support Network</h1>
           <p className="text-sm text-ink-500 mt-1">
-            Money moves between people who care about each other. Keep track — without keeping score.
+            Family, faith, and community money flows. Nafaka treats these as obligations, not as &ldquo;leakage&rdquo;.
           </p>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div className="card p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-100 text-brand-700">
-                <ArrowUpRight size={14} />
-              </span>
-              <p className="text-xs text-ink-500">Given · YTD</p>
+            <div className="flex items-center gap-2">
+              <ArrowUpRight size={16} className="text-accent-600" />
+              <p className="text-xs font-medium text-ink-500">Given YTD</p>
             </div>
-            <p className="font-display text-xl font-semibold text-ink-900">{fmt(totalOwedToYou)}</p>
+            <p className="mt-2 text-xl font-bold text-ink-900">{fmt(totalGiven)}</p>
           </div>
           <div className="card p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent-100 text-accent-700">
-                <ArrowDownLeft size={14} />
-              </span>
-              <p className="text-xs text-ink-500">Received · YTD</p>
+            <div className="flex items-center gap-2">
+              <ArrowDownRight size={16} className="text-brand-600" />
+              <p className="text-xs font-medium text-ink-500">Received YTD</p>
             </div>
-            <p className="font-display text-xl font-semibold text-ink-900">{fmt(totalYouOwe)}</p>
+            <p className="mt-2 text-xl font-bold text-ink-900">{fmt(totalReceived)}</p>
           </div>
         </div>
 
         <div>
-          <SectionTitle title="People" hint={`${network.length} in your circle`} />
-          {network.length > 0 ? (
-            <div className="space-y-3">
-              {network.map((p) => (
-                <div key={p.id} className="card p-4 flex items-center gap-3">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-600 text-white text-xs font-bold">
-                    {p.initials}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-ink-900 truncate">{p.name}</p>
-                    <p className="text-xs text-ink-500 mt-0.5">{p.relationship} &middot; {p.lastEntry}</p>
+          <SectionTitle title="Your network" hint="People and groups you exchange with" />
+          <div className="space-y-3">
+            {network.map((p) => {
+              const gives = p.balance > 0
+              const receives = p.balance < 0
+              return (
+                <div key={p.id} className="card p-4">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-ink-900 text-white">
+                      <Users size={18} />
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-ink-900">{p.name}</p>
+                      <p className="text-xs text-ink-500">{p.relationship}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-bold text-ink-900">{fmt(Math.abs(p.balance))}</p>
+                      <p className="text-[10px] text-ink-400 mt-0.5">YTD</p>
+                    </div>
                   </div>
-                  <p className={`text-sm font-bold whitespace-nowrap ${p.balance >= 0 ? 'text-brand-600' : 'text-accent-700'}`}>
-                    {p.balance >= 0 ? '+' : '-'}{fmt(p.balance)}
-                  </p>
+                  <div className="mt-3 flex items-center justify-between">
+                    <span
+                      className={`pill ${
+                        gives ? 'bg-accent-100 text-accent-700' : receives ? 'bg-brand-100 text-brand-700' : 'bg-ink-100 text-ink-600'
+                      }`}
+                    >
+                      {gives ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+                      {gives ? 'gives' : 'receives'}
+                    </span>
+                    <span className="text-[11px] text-ink-500">Last: {p.lastEntry}</span>
+                  </div>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="card p-8 text-center">
-              <HeartHandshake size={22} className="text-ink-400 mx-auto mb-3" />
-              <p className="text-sm text-ink-500">No one in your network yet</p>
-              <p className="text-xs text-ink-400 mt-1">Log a give or borrow below</p>
-            </div>
-          )}
+              )
+            })}
+            {network.length === 0 && (
+              <div className="card p-8 text-center">
+                <Users size={22} className="text-ink-400 mx-auto mb-3" />
+                <p className="text-sm text-ink-500">No one in your network yet</p>
+                <p className="text-xs text-ink-400 mt-1">Log a give or borrow below</p>
+              </div>
+            )}
+          </div>
         </div>
 
         {showForm ? (
           <div className="card p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-display text-base font-semibold text-ink-900">Log an exchange</h2>
+              <h2 className="font-display text-base font-semibold text-ink-900">Add a contact</h2>
               <button
                 onClick={() => setShowForm(false)}
                 className="text-ink-500 hover:text-ink-800 transition"
@@ -164,7 +176,7 @@ export default function SupportNetwork() {
           </div>
         ) : (
           <button onClick={() => setShowForm(true)} className="btn-ghost w-full">
-            <Plus size={16} /> Log a give or borrow
+            <Plus size={16} /> Add a contact
           </button>
         )}
       </main>

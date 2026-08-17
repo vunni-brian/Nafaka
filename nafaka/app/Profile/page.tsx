@@ -1,34 +1,39 @@
 'use client'
 
 import React, { useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import BottomNav from '@/components/BottomNav'
 import AppHeader from '@/components/AppHeader'
 import { useGoogleFont } from '@/lib/fonts'
 import { useFinance } from '@/lib/store'
-import { createClient } from '@/utils/supabase/client'
-import { ChevronRight, Sparkles, Check, LogOut, BellRing } from 'lucide-react'
-import { SectionTitle } from '@/components/proto/ui'
+import { MapPin, CalendarDays, Sparkles, ShieldCheck, Bell, Globe, Lock, ChevronRight, LogOut, Check } from 'lucide-react'
+import { SectionTitle, ConfidenceBar } from '@/components/proto/ui'
+import { fmt } from '@/components/proto/format'
+import { tierLabel, tierCopy } from '@/lib/brain/describe'
+import { daysBetween, toISODate } from '@/lib/brain/stats'
 
 export default function Profile() {
   const body = useGoogleFont('Manrope')
   const router = useRouter()
-  const { profile, setProfileName, setNotificationsOptIn } = useFinance()
+  const { profile, setProfileName, setNotificationsOptIn, behaviorModel, commitments, transactions } = useFinance()
 
   const [editing, setEditing] = useState(false)
   const [nameDraft, setNameDraft] = useState(profile.name)
-  const [email, setEmail] = useState<string | null>(null)
   const [signingOut, setSigningOut] = useState(false)
+
+  const confidencePctValue = Math.round(behaviorModel.confidence * 100)
+
+  const earliest = transactions.reduce<string | null>((min, t) => {
+    const d = t.recordedAt?.slice(0, 10)
+    return d && (!min || d < min) ? d : min
+  }, null)
+  const daysUsing = earliest ? Math.max(1, daysBetween(earliest, toISODate(new Date()))) : behaviorModel.dataPoints
 
   const handleSaveName = () => {
     if (nameDraft.trim().length > 0) setProfileName(nameDraft.trim())
     setEditing(false)
   }
-
-  React.useEffect(() => {
-    const supabase = createClient()
-    supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? null))
-  }, [])
 
   const handleSignOut = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -41,89 +46,119 @@ export default function Profile() {
     router.refresh()
   }
 
+  const unlocks = [
+    { label: 'Patterns', sub: '40% conf', unlocked: confidencePctValue >= 40 },
+    { label: 'Health', sub: '70% conf', unlocked: confidencePctValue >= 70 },
+    { label: 'Coaching', sub: '90% conf', unlocked: confidencePctValue >= 90 },
+  ]
+
   return (
-    <div className="min-h-screen bg-background pb-28" style={{ fontFamily: body }}>
+    <div className="min-h-screen bg-ink-50 pb-28" style={{ fontFamily: body }}>
       <AppHeader />
       <main className="mx-auto max-w-md px-5 pt-4 space-y-6 animate-fade-up">
         <div>
-          <h1 className="font-display text-2xl font-semibold text-ink-900">Settings</h1>
-          <p className="text-sm text-ink-500 mt-1">Your profile, preferences, and account.</p>
+          <h1 className="font-display text-2xl font-semibold text-ink-900">Profile</h1>
+          <p className="text-sm text-ink-500 mt-1">Your account, behavior model, and preferences.</p>
         </div>
 
         {/* Profile card */}
-        <div className="card p-4 flex items-center gap-4">
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-brand-600 text-white text-xl font-semibold">
-            {profile.name.charAt(0).toUpperCase()}
-          </div>
-          <div className="flex-1 min-w-0">
-            {editing ? (
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={nameDraft}
-                  onChange={(e) => setNameDraft(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSaveName()}
-                  className="input py-2 w-40"
-                  autoFocus
-                />
-                <button
-                  onClick={handleSaveName}
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-600 text-white hover:bg-brand-700 transition"
-                  aria-label="Save name"
-                >
-                  <Check size={14} />
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <p className="font-display text-lg font-semibold text-ink-900 truncate">
-                  {profile.name.charAt(0).toUpperCase() + profile.name.slice(1)}
-                </p>
-                <button
-                  onClick={() => { setNameDraft(profile.name); setEditing(true) }}
-                  className="text-xs font-semibold text-brand-700 hover:underline"
-                >
-                  Edit
-                </button>
-              </div>
-            )}
-            <p className="text-xs text-ink-500 mt-0.5">{email ?? 'Demo account'}</p>
-          </div>
-        </div>
-
-        <div>
-          <SectionTitle title="Financial archetype" hint="From your onboarding" />
-          <div className="card p-4">
-            <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-100 text-brand-700">
-                <Sparkles size={17} />
-              </span>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-ink-900">{profile.archetype || 'Not set yet'}</p>
-                <p className="text-xs text-ink-500 mt-0.5">Your money personality, shaped by how you describe yourself</p>
-              </div>
+        <div className="card p-5">
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-white font-display text-xl font-semibold">
+              {profile.name.charAt(0).toUpperCase()}
             </div>
-            {profile.priorities.length > 0 && (
-              <div className="mt-4 flex flex-wrap gap-2">
-                {profile.priorities.map((p) => (
-                  <span key={p} className="pill bg-brand-50 text-brand-700 border border-brand-200">{p}</span>
-                ))}
+            <div className="flex-1 min-w-0">
+              {editing ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={nameDraft}
+                    onChange={(e) => setNameDraft(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSaveName()}
+                    className="input py-2 w-40"
+                    autoFocus
+                  />
+                  <button
+                    onClick={handleSaveName}
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-600 text-white hover:bg-brand-700 transition"
+                    aria-label="Save name"
+                  >
+                    <Check size={14} />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <p className="font-display text-lg font-semibold text-ink-900 truncate">
+                    {profile.name.charAt(0).toUpperCase() + profile.name.slice(1)}
+                  </p>
+                  <button
+                    onClick={() => { setNameDraft(profile.name); setEditing(true) }}
+                    className="text-xs font-semibold text-brand-700 hover:underline"
+                  >
+                    Edit
+                  </button>
+                </div>
+              )}
+              <p className="text-xs text-ink-500 flex items-center gap-1 mt-0.5">
+                <MapPin size={12} /> {profile.archetype || 'Kampala, Uganda'}
+              </p>
+              <p className="text-xs text-ink-500 flex items-center gap-1 mt-0.5">
+                <CalendarDays size={12} /> Using Nafaka for {daysUsing} days
+              </p>
+            </div>
+          </div>
+          <div className="mt-4 pt-4 border-t border-ink-100">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles size={15} className="text-brand-600" />
+                <p className="text-sm font-semibold text-ink-900">Behavioral confidence</p>
               </div>
-            )}
+              <ConfidenceBar value={confidencePctValue} />
+            </div>
+            <p className="text-xs text-ink-500 mt-2">
+              {tierLabel(behaviorModel.confidenceTier)}. {tierCopy(behaviorModel.confidenceTier)} Full intelligence unlocks at 90%.
+            </p>
           </div>
         </div>
 
+        {/* Commitments */}
         <div>
-          <SectionTitle title="Preferences" hint="Nafaka behavior" />
+          <SectionTitle title="Recurring commitments" hint={`${commitments.length} tracked`} />
+          <div className="card divide-y divide-ink-100">
+            {commitments.map((c) => (
+              <div key={c.id} className="flex items-center gap-3 px-4 py-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-ink-900 truncate">{c.label}</p>
+                  <p className="text-xs text-ink-500">{c.when} &middot; {c.status}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-bold text-ink-900">{fmt(c.amount)}</p>
+                  <p className="text-[10px] text-brand-700 font-semibold">
+                    {c.status === 'fulfilled' ? '100% reliable' : c.status === 'missed' ? '0% reliable' : 'tracking'}
+                  </p>
+                </div>
+              </div>
+            ))}
+            {commitments.length === 0 && (
+              <div className="px-4 py-6 text-center">
+                <p className="text-xs text-ink-500">No commitments tracked yet.</p>
+              </div>
+            )}
+          </div>
+          <Link href="/LifeEvents" className="btn-ghost w-full mt-3">
+            + Add commitment
+          </Link>
+        </div>
+
+        {/* Preferences */}
+        <div>
+          <SectionTitle title="Preferences" />
           <div className="card divide-y divide-ink-100">
             <div className="flex items-center gap-3 px-4 py-3.5">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent-100 text-accent-700">
-                <BellRing size={16} />
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-ink-100 text-ink-600">
+                <Bell size={17} />
               </span>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-ink-900">Notifications</p>
-                <p className="text-xs text-ink-500">Daily safe-to-spend and reminders</p>
-              </div>
+              <p className="text-sm font-medium text-ink-800 flex-1">Notifications</p>
               <button
                 onClick={() => setNotificationsOptIn(!profile.notificationsOptIn)}
                 aria-pressed={!!profile.notificationsOptIn}
@@ -139,32 +174,82 @@ export default function Profile() {
                 />
               </button>
             </div>
-            <button
-              onClick={() => window.history.back()}
-              className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-ink-50 transition"
-            >
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-100 text-brand-700">
-                <Sparkles size={16} />
+            <div className="flex items-center gap-3 px-4 py-3.5">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-ink-100 text-ink-600">
+                <Globe size={17} />
               </span>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-ink-900">View notifications</p>
-                <p className="text-xs text-ink-500">See recent reminders and insights</p>
-              </div>
-              <ChevronRight size={16} className="text-ink-300 shrink-0" />
-            </button>
+              <p className="text-sm font-medium text-ink-800 flex-1">Region context</p>
+              <p className="text-xs font-semibold text-ink-500">Uganda</p>
+              <ChevronRight size={16} className="text-ink-300" />
+            </div>
+            <div className="flex items-center gap-3 px-4 py-3.5">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-ink-100 text-ink-600">
+                <ShieldCheck size={17} />
+              </span>
+              <p className="text-sm font-medium text-ink-800 flex-1">Judgment filter</p>
+              <p className="text-xs font-semibold text-ink-500">Always on</p>
+              <ChevronRight size={16} className="text-ink-300" />
+            </div>
+            <Link href="/privacy" className="flex items-center gap-3 px-4 py-3.5 hover:bg-ink-50 transition">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-ink-100 text-ink-600">
+                <Lock size={17} />
+              </span>
+              <p className="text-sm font-medium text-ink-800 flex-1">Privacy &amp; data</p>
+              <ChevronRight size={16} className="text-ink-300" />
+            </Link>
           </div>
         </div>
 
-        <form onSubmit={handleSignOut} className="pt-2">
+        {/* Unlock levels */}
+        <div>
+          <SectionTitle title="Unlock levels" hint="How Nafaka grows with your data" />
+          <div className="card p-4">
+            <div className="grid grid-cols-3 gap-2">
+              {unlocks.map((u) => (
+                <div
+                  key={u.label}
+                  className={`rounded-xl border px-2 py-3 text-center transition ${
+                    u.unlocked ? 'border-brand-500 bg-brand-50 text-brand-800' : 'border-ink-200 text-ink-600'
+                  }`}
+                >
+                  <p className="text-sm font-bold">{u.label}</p>
+                  <p className="text-[10px] mt-0.5 opacity-70">{u.unlocked ? 'Unlocked' : u.sub}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Secondary nav */}
+        <div>
+          <SectionTitle title="More" />
+          <div className="card divide-y divide-ink-100">
+            <Link href="/LifeEvents" className="flex items-center w-full px-4 py-3.5 hover:bg-ink-50 transition">
+              <p className="text-sm font-medium text-ink-800 flex-1 text-left">Life events</p>
+              <ChevronRight size={16} className="text-ink-300" />
+            </Link>
+            <Link href="/SupportNetwork" className="flex items-center w-full px-4 py-3.5 hover:bg-ink-50 transition">
+              <p className="text-sm font-medium text-ink-800 flex-1 text-left">Support network</p>
+              <ChevronRight size={16} className="text-ink-300" />
+            </Link>
+            <Link href="/Notifications" className="flex items-center w-full px-4 py-3.5 hover:bg-ink-50 transition">
+              <p className="text-sm font-medium text-ink-800 flex-1 text-left">Notifications</p>
+              <ChevronRight size={16} className="text-ink-300" />
+            </Link>
+          </div>
+        </div>
+
+        <form onSubmit={handleSignOut}>
           <button
             type="submit"
             disabled={signingOut}
-            className="btn-ghost w-full disabled:opacity-60 disabled:cursor-not-allowed"
+            className="w-full flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold text-accent-700 hover:bg-accent-50 transition disabled:opacity-60"
           >
-            <LogOut size={16} />
-            {signingOut ? 'Signing out…' : 'Sign out'}
+            <LogOut size={16} /> {signingOut ? 'Signing out…' : 'Sign out'}
           </button>
         </form>
+
+        <p className="text-center text-[11px] text-ink-400">Nafaka 2.0 &middot; Behavioral Financial Intelligence</p>
       </main>
 
       <BottomNav active="home" />

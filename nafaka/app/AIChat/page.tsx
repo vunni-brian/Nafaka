@@ -19,7 +19,12 @@ interface Message {
   id: number
   role: 'user' | 'ai'
   text: string
+  ts: string
   chart?: { day: string; amount: number }[]
+}
+
+function now() {
+  return new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
 }
 
 const chartConfig = {
@@ -55,9 +60,7 @@ export default function AIChat() {
   )
 
   const [messages, setMessages] = useState<Message[]>(() => [
-    { id: 1, role: 'ai', text: buildGreeting(ctx) },
-    { id: 2, role: 'user', text: 'Can I afford to buy data worth 10,000 today?' },
-    { id: 3, role: 'ai', text: answerQuestion('Can I afford to buy data worth 10,000 today?', ctx).text },
+    { id: 1, role: 'ai', text: buildGreeting(ctx), ts: now() },
   ])
   const [input, setInput] = useState('')
   const [pending, setPending] = useState(false)
@@ -76,7 +79,7 @@ export default function AIChat() {
     setPending(true)
     track('chat_message_sent', { source })
     const id = nextId.current++
-    setMessages((prev) => [...prev, { id, role: 'user', text: question }])
+    setMessages((prev) => [...prev, { id, role: 'user', text: question, ts: now() }])
     setInput('')
 
     const answer = async (reply: ChatReply, delay = 0) => {
@@ -88,6 +91,7 @@ export default function AIChat() {
           id: aiId,
           role: 'ai',
           text: reply.text,
+          ts: now(),
           ...(reply.chart ? { chart: reply.chart } : {}),
         },
       ])
@@ -142,7 +146,7 @@ export default function AIChat() {
                 {m.role === 'user' ? <User size={15} /> : <Sparkles size={15} />}
               </span>
               <div
-                className={`max-w-[78%] rounded-[1.25rem] px-3.5 py-2.5 text-sm leading-relaxed ${
+                className={`max-w-[78%] rounded-xl2 px-3.5 py-2.5 text-sm leading-relaxed ${
                   m.role === 'user' ? 'bg-ink-900 text-white' : 'bg-white border border-ink-100 text-ink-800 shadow-card'
                 }`}
               >
@@ -166,6 +170,7 @@ export default function AIChat() {
                     </ChartContainer>
                   </div>
                 )}
+                <p className={`text-[10px] mt-1.5 ${m.role === 'user' ? 'text-white/50' : 'text-ink-400'}`}>{m.ts}</p>
               </div>
             </div>
           ))}
@@ -174,7 +179,7 @@ export default function AIChat() {
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-600 text-white">
                 <Sparkles size={15} />
               </span>
-              <div className="bg-white border border-ink-100 rounded-[1.25rem] px-4 py-3 shadow-card">
+              <div className="bg-white border border-ink-100 rounded-xl2 px-4 py-3 shadow-card">
                 <div className="flex gap-1">
                   <span className="h-1.5 w-1.5 rounded-full bg-ink-300 animate-pulse-soft" />
                   <span className="h-1.5 w-1.5 rounded-full bg-ink-300 animate-pulse-soft" style={{ animationDelay: '0.2s' }} />
@@ -187,7 +192,7 @@ export default function AIChat() {
         </div>
 
         {/* Suggestions */}
-        {messages.length <= 3 && (
+        {messages.length <= 2 && (
           <div className="pb-3">
             <p className="text-xs font-medium text-ink-500 mb-2">Try asking</p>
             <div className="flex flex-wrap gap-2">

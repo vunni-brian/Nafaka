@@ -131,25 +131,27 @@ function LoginForm() {
     }
   }
 
-  return (
-    <div className="min-h-screen bg-background relative overflow-hidden" style={{ fontFamily: body }}>
-      <div className="absolute -top-24 -right-20 w-72 h-72 rounded-full bg-primary/15 blur-3xl" />
-      <div className="absolute top-1/3 -left-24 w-64 h-64 rounded-full bg-brand-300/30 blur-3xl" />
-      <div className="absolute bottom-0 right-0 w-80 h-80 rounded-full bg-accent-300/35 blur-3xl" />
+  const inputClass =
+    'flex w-full items-center gap-3 rounded-xl2 border border-ink-200 bg-white px-4 py-3.5 focus-within:border-brand-500 transition-colors'
 
-      <div className="relative max-w-sm mx-auto min-h-screen flex flex-col px-6 pt-16 pb-10">
+  return (
+    <div className="min-h-screen bg-ink-50 relative overflow-hidden" style={{ fontFamily: body }}>
+      <div className="absolute -top-24 -right-20 w-72 h-72 rounded-full bg-brand-500/10 blur-3xl" />
+      <div className="absolute bottom-0 left-0 w-80 h-80 rounded-full bg-accent-500/10 blur-3xl" />
+
+      <div className="relative max-w-md mx-auto min-h-screen flex flex-col px-6 pt-12 pb-10">
         <Link href="/" className="flex items-center gap-2" aria-label="Nafaka home">
-          <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center">
-            <Sparkles size={16} className="text-primary-foreground" />
-          </div>
-          <span className="text-sm tracking-[0.2em] uppercase text-muted-foreground font-semibold">Nafaka</span>
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-600 text-white shadow-glow">
+            <Sparkles size={17} />
+          </span>
+          <span className="font-display text-xl font-semibold text-ink-900 tracking-tight">Nafaka</span>
         </Link>
 
-        <div className="mt-14 flex-1 flex flex-col justify-center">
-          <h1 style={{ fontFamily: display }} className="text-4xl leading-[1.08] text-foreground font-medium mb-2">
+        <div className="mt-14 flex-1 flex flex-col justify-center animate-fade-up">
+          <h1 style={{ fontFamily: display }} className="font-display text-4xl leading-[1.08] font-medium text-ink-900 mb-2">
             {mode === 'signin' ? 'Welcome back' : mode === 'signup' ? 'Start your plan' : 'Sign in with your number'}
           </h1>
-          <p className="text-muted-foreground text-base mb-8">
+          <p className="text-ink-500 text-base mb-8">
             {mode === 'signin'
               ? 'Sign in to your Nafaka account.'
               : mode === 'signup'
@@ -163,8 +165,8 @@ function LoginForm() {
                 <>
                   <label className="block">
                     <span className="sr-only">Phone number</span>
-                    <div className="flex items-center gap-3 bg-card border border-border rounded-2xl px-4 py-3.5 focus-within:border-primary transition-colors">
-                      <Smartphone size={17} className="text-muted-foreground shrink-0" />
+                    <div className={inputClass}>
+                      <Smartphone size={17} className="text-ink-400 shrink-0" />
                       <input
                         type="tel"
                         required
@@ -173,7 +175,7 @@ function LoginForm() {
                         placeholder="+256 700 000 000"
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
-                        className="flex-1 bg-transparent outline-none text-foreground placeholder:text-muted-foreground text-sm min-w-0"
+                        className="flex-1 bg-transparent outline-none text-ink-900 placeholder:text-ink-400 text-sm min-w-0"
                       />
                     </div>
                   </label>
@@ -181,7 +183,7 @@ function LoginForm() {
                     type="button"
                     onClick={handlePhoneSend}
                     disabled={loading || phone.trim().length < 8}
-                    className="cursor-pointer w-full flex items-center justify-center gap-2 rounded-full bg-primary text-primary-foreground font-semibold py-4 text-base hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20 disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="btn-primary w-full disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {loading ? <span className="animate-pulse">Please wait…</span> : <>Send code</>}
                   </button>
@@ -190,8 +192,8 @@ function LoginForm() {
                 <>
                   <label className="block">
                     <span className="sr-only">Verification code</span>
-                    <div className="flex items-center gap-3 bg-card border border-border rounded-2xl px-4 py-3.5 focus-within:border-primary transition-colors">
-                      <ShieldCheck size={17} className="text-muted-foreground shrink-0" />
+                    <div className={inputClass}>
+                      <ShieldCheck size={17} className="text-ink-400 shrink-0" />
                       <input
                         type="text"
                         required
@@ -200,7 +202,7 @@ function LoginForm() {
                         placeholder="6-digit code"
                         value={otp}
                         onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                        className="flex-1 bg-transparent outline-none text-foreground placeholder:text-muted-foreground text-sm min-w-0"
+                        className="flex-1 bg-transparent outline-none text-ink-900 placeholder:text-ink-400 text-sm min-w-0"
                       />
                     </div>
                   </label>
@@ -208,14 +210,14 @@ function LoginForm() {
                     type="button"
                     onClick={handlePhoneVerify}
                     disabled={loading || otp.length < 4}
-                    className="cursor-pointer w-full flex items-center justify-center gap-2 rounded-full bg-primary text-primary-foreground font-semibold py-4 text-base hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20 disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="btn-primary w-full disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {loading ? <span className="animate-pulse">Please wait…</span> : <>Verify &amp; sign in</>}
                   </button>
                   <button
                     type="button"
                     onClick={() => { setOtpSent(false); setOtp('') }}
-                    className="cursor-pointer w-full text-center text-sm text-primary hover:underline"
+                    className="cursor-pointer w-full text-center text-sm text-brand-700 hover:underline"
                   >
                     Use a different number
                   </button>
@@ -226,8 +228,8 @@ function LoginForm() {
           <form onSubmit={handleSubmit} className="space-y-4" noValidate>
             <label className="block">
               <span className="sr-only">Email</span>
-              <div className="flex items-center gap-3 bg-card border border-border rounded-2xl px-4 py-3.5 focus-within:border-primary transition-colors">
-                <Mail size={17} className="text-muted-foreground shrink-0" />
+              <div className={inputClass}>
+                <Mail size={17} className="text-ink-400 shrink-0" />
                 <input
                   type="email"
                   required
@@ -235,15 +237,15 @@ function LoginForm() {
                   placeholder="you@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="flex-1 bg-transparent outline-none text-foreground placeholder:text-muted-foreground text-sm min-w-0"
+                  className="flex-1 bg-transparent outline-none text-ink-900 placeholder:text-ink-400 text-sm min-w-0"
                 />
               </div>
             </label>
 
             <label className="block">
               <span className="sr-only">Password</span>
-              <div className="flex items-center gap-3 bg-card border border-border rounded-2xl px-4 py-3.5 focus-within:border-primary transition-colors">
-                <Lock size={17} className="text-muted-foreground shrink-0" />
+              <div className={inputClass}>
+                <Lock size={17} className="text-ink-400 shrink-0" />
                 <input
                   type="password"
                   required
@@ -252,7 +254,7 @@ function LoginForm() {
                   minLength={6}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="flex-1 bg-transparent outline-none text-foreground placeholder:text-muted-foreground text-sm min-w-0"
+                  className="flex-1 bg-transparent outline-none text-ink-900 placeholder:text-ink-400 text-sm min-w-0"
                 />
               </div>
             </label>
@@ -263,7 +265,7 @@ function LoginForm() {
               </p>
             )}
             {message && (
-              <p role="status" className="text-sm text-primary bg-primary/10 border border-primary/20 rounded-xl px-4 py-3">
+              <p role="status" className="text-sm text-brand-700 bg-brand-50 border border-brand-500/20 rounded-xl px-4 py-3">
                 {message}
               </p>
             )}
@@ -271,7 +273,7 @@ function LoginForm() {
             <button
               type="submit"
               disabled={loading}
-              className="cursor-pointer w-full flex items-center justify-center gap-2 rounded-full bg-primary text-primary-foreground font-semibold py-4 text-base hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="btn-primary w-full disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <span className="animate-pulse">Please wait…</span>
@@ -294,22 +296,22 @@ function LoginForm() {
             </p>
           )}
           {message && mode === 'phone' && (
-            <p role="status" className="text-sm text-primary bg-primary/10 border border-primary/20 rounded-xl px-4 py-3">
+            <p role="status" className="text-sm text-brand-700 bg-brand-50 border border-brand-500/20 rounded-xl px-4 py-3">
               {message}
             </p>
           )}
 
           <div className="flex items-center gap-3 my-6" role="separator">
-            <div className="h-px flex-1 bg-border" />
-            <span className="text-xs text-muted-foreground">or</span>
-            <div className="h-px flex-1 bg-border" />
+            <div className="h-px flex-1 bg-ink-200" />
+            <span className="text-xs text-ink-400">or</span>
+            <div className="h-px flex-1 bg-ink-200" />
           </div>
 
           <button
             type="button"
             onClick={handleGoogle}
             disabled={loading}
-            className="cursor-pointer w-full flex items-center justify-center gap-3 rounded-full border border-border bg-card text-foreground font-semibold py-4 text-base hover:bg-card/70 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            className="cursor-pointer w-full flex items-center justify-center gap-3 rounded-xl2 border border-ink-200 bg-white text-ink-900 font-semibold py-4 text-base hover:bg-ink-50 transition disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <GoogleIcon />
             Continue with Google
@@ -322,7 +324,7 @@ function LoginForm() {
               setError(null)
               setMessage(null)
             }}
-            className="cursor-pointer mt-6 text-center text-sm text-primary hover:underline"
+            className="cursor-pointer mt-6 text-center text-sm text-brand-700 hover:underline"
           >
             {mode === 'phone'
               ? 'Prefer email? Sign in with email'
@@ -339,14 +341,14 @@ function LoginForm() {
                 setError(null)
                 setMessage(null)
               }}
-              className="cursor-pointer mt-3 text-center text-sm text-muted-foreground hover:underline"
+              className="cursor-pointer mt-3 text-center text-sm text-ink-500 hover:underline"
             >
               Use your phone number instead
             </button>
           )}
         </div>
 
-        <p className="text-center text-xs text-muted-foreground">
+        <p className="text-center text-xs text-ink-400">
           Your data is protected with row-level security.
         </p>
       </div>
@@ -356,7 +358,7 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-background" />}>
+    <Suspense fallback={<div className="min-h-screen bg-ink-50" />}>
       <LoginForm />
     </Suspense>
   )
