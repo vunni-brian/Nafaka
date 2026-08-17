@@ -5,9 +5,10 @@ import BottomNav from '@/components/BottomNav'
 import { useGoogleFont } from '@/lib/fonts'
 import { RadialBarChart, RadialBar, PolarAngleAxis, ResponsiveContainer } from 'recharts'
 import { ChartContainer } from '@/components/ui/chart'
-import { TrendingUp, ShieldCheck, PiggyBank, HandCoins, LifeBuoy, Sparkles } from 'lucide-react'
+import { TrendingUp, ShieldCheck, PiggyBank, HandCoins, LifeBuoy, Sparkles, Crosshair } from 'lucide-react'
 import { useFinance } from '@/lib/store'
 import { computeHealthScore, type HealthComponent, type HealthComponentKey } from '@/lib/brain/health'
+import { componentSuggestion, weakestReadyComponent } from '@/lib/brain/focus'
 import { confidencePct, stateLabel } from '@/lib/brain/describe'
 import type { FinancialState } from '@/lib/brain/types'
 
@@ -26,6 +27,7 @@ export default function HealthScore() {
 
   const health = computeHealthScore(behaviorModel)
   const score = health.score
+  const weakest = weakestReadyComponent(health.components)
   const data = [{ name: 'score', value: score ?? 0, fill: 'var(--color-score)' }]
 
   return (
@@ -81,11 +83,25 @@ export default function HealthScore() {
         </div>
 
         <h2 className="text-sm font-semibold text-foreground mb-3">What makes up your score</h2>
-        <div className="space-y-3">
+        <div className="space-y-3 mb-8">
           {health.components.map((c) => (
             <ComponentRow key={c.key} component={c} state={behaviorModel.state} />
           ))}
         </div>
+
+        {weakest && (
+          <div className="rounded-3xl bg-accent/50 border border-border p-6">
+            <div className="flex items-center gap-2 mb-3">
+              <Crosshair size={16} className="text-secondary" />
+              <p className="text-xs uppercase tracking-wide font-semibold text-secondary">
+                One focus — {weakest.label.toLowerCase()}
+              </p>
+            </div>
+            <p style={{ fontFamily: display }} className="text-lg text-foreground leading-snug">
+              {componentSuggestion(weakest.key)}
+            </p>
+          </div>
+        )}
       </div>
 
       <BottomNav active="score" />

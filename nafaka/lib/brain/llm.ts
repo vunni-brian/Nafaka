@@ -45,6 +45,35 @@ export function buildLlmContext(ctx: ChatContext, commitments: Commitment[]) {
     .slice(0, 6)
     .map((i) => i.text)
 
+  const decisions = ctx.decisionLog.map((d) => ({
+    decision: d.id,
+    value: d.value,
+    inputs: d.inputs,
+    signals: d.signals,
+    confidence: Math.round(d.confidence * 100),
+    reason: d.reason,
+  }))
+
+  const predictions = ctx.predictions.map((p) => ({
+    id: p.id,
+    severity: p.severity,
+    windowDays: p.windowDays,
+    confidence: Math.round(p.confidence * 100),
+    evidence: p.evidence,
+    reason: p.reason,
+  }))
+
+  const coaching = ctx.latestOutcome !== null && ctx.latestOutcome.measured
+    ? {
+        focusKey: ctx.latestOutcome.focusKey,
+        metric: ctx.latestOutcome.metric,
+        before: ctx.latestOutcome.before,
+        after: ctx.latestOutcome.after,
+        improved: ctx.latestOutcome.improved,
+        statement: ctx.latestOutcome.text,
+      }
+    : null
+
   return {
     name: ctx.name,
     balance: Math.round(ctx.balance),
@@ -52,12 +81,16 @@ export function buildLlmContext(ctx: ChatContext, commitments: Commitment[]) {
     upcomingTotal: Math.round(ctx.upcomingTotal),
     shortfall: ctx.shortfall > 0 ? Math.round(ctx.shortfall) : 0,
     state: ctx.model.state,
+    situation: ctx.model.situation,
     runwayDays: ctx.model.stateDetail.runwayDays,
     dailyEssentialCost: Math.round(ctx.model.stateDetail.dailyEssentialCost),
     confidenceTier: ctx.model.confidenceTier,
     dataPoints: ctx.model.dataPoints,
     signals,
     insights,
+    decisions,
+    predictions,
+    coaching,
     recentTransactions,
     upcomingCommitments,
   }

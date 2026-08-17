@@ -7,6 +7,8 @@ import { useGoogleFont } from '@/lib/fonts'
 import { useFinance } from '@/lib/store'
 import { track } from '@/lib/analytics'
 import { generateInsights } from '@/lib/brain/insights'
+import { isCalm } from '@/lib/brain/situation'
+import type { NafakaPrediction } from '@/lib/brain/predict'
 import {
   Plus,
   Minus,
@@ -21,6 +23,11 @@ import {
   Trash2,
   HeartHandshake,
   Bell,
+  CalendarClock,
+  Gauge,
+  AlertTriangle,
+  CheckCircle2,
+  Eye,
 } from 'lucide-react'
 
 const iconMap: Record<string, typeof Church> = {
@@ -33,14 +40,23 @@ const iconMap: Record<string, typeof Church> = {
 export default function DailySnapshot() {
   const display = useGoogleFont('Fraunces')
   const body = useGoogleFont('Manrope')
-  const { profile, balance, safeToSpend, transactions, commitments, deleteTransaction, behaviorModel } = useFinance()
+  const { profile, balance, safeToSpend, transactions, commitments, deleteTransaction, behaviorModel, safeToSpendWhy, predictions } = useFinance()
 
   const [openRow, setOpenRow] = useState<number | null>(null)
   const tracked = useRef(false)
 
-  const todayInsight =
-    generateInsights(behaviorModel)[0]?.text ??
-    'Nafaka is still learning your patterns this week — recording income and expenses sharpens your insights.'
+  const topInsight = generateInsights(behaviorModel)[0]
+  const todayInsight = topInsight
+    ? topInsight.severity === 'action' || topInsight.severity === 'watch'
+      ? topInsight.text
+      : `You're on track. ${topInsight.text}`
+    : behaviorModel.confidenceTier === 'exploring'
+      ? 'Nafaka is still learning your patterns this week — recording income and expenses sharpens your insights.'
+      : isCalm(behaviorModel.situation)
+        ? "Nothing important changed today. You're on track — keep today's safe-to-spend as your ceiling."
+        : 'Nothing needs action right now — Nafaka is watching your situation closely.'
+
+  const [showWhy, setShowWhy] = useState(false)
 
   useEffect(() => {
     if (tracked.current) return
@@ -111,10 +127,34 @@ export default function DailySnapshot() {
                 {fmt(safeToSpend)}
               </p>
             </div>
-            <span className="text-[11px] bg-primary-foreground/15 rounded-full px-3 py-1.5">
-              After commitments
-            </span>
+            <button
+              onClick={() => setShowWhy((v) => !v)}
+              className="cursor-pointer text-[11px] bg-primary-foreground/15 rounded-full px-3 py-1.5 hover:bg-primary-foreground/25 transition-colors"
+              aria-expanded={showWhy}
+            >
+              {showWhy ? 'Hide why' : 'Why this amount?'}
+            </button>
           </div>
+          {showWhy && (
+            <div className="mt-4 space-y-2.5 border-t border-primary-foreground/15 pt-4">
+              {safeToSpendWhy.lines.length > 0 ? (
+                safeToSpendWhy.lines.map((line, i) => (
+                  <p key={i} className="text-[13px] text-primary-foreground/85 leading-relaxed flex items-start gap-2">
+                    {i % 2 === 0 ? (
+                      <CalendarClock size={14} className="shrink-0 mt-0.5 opacity-70" />
+                    ) : (
+                      <Gauge size={14} className="shrink-0 mt-0.5 opacity-70" />
+                    )}
+                    {line}
+                  </p>
+                ))
+              ) : (
+                <p className="text-[13px] text-primary-foreground/85 leading-relaxed">
+                  Nafaka is still learning your situation — record income and expenses to sharpen this.
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-3 mb-6">
@@ -149,6 +189,20 @@ export default function DailySnapshot() {
             </div>
           </div>
         </div>
+
+        {predictions.length > 0 && (
+          <div className="mb-8">
+            <div className="flex items-center gap-1.5 mb-3">
+              <Eye size={14} className="text-secondary" />
+              <h2 className="text-sm font-semibold text-foreground">Looking ahead</h2>
+            </div>
+            <div className="space-y-2.5">
+              {predictions.slice(0, 2).map((p) => (
+                <PredictionRow key={p.id} prediction={p} />
+              ))}
+            </div>
+          </div>
+        )}
 
         <Link
           href="/SupportNetwork"
@@ -257,6 +311,34 @@ export default function DailySnapshot() {
       </div>
 
       <BottomNav active="home" />
+    </div>
+  )
+}
+
+function PredictionRow({ prediction }: { prediction: NafakaPrediction }) {
+  const watch = prediction.severity === 'watch'
+  const Icon = watch ? AlertTriangle : prediction.severity === 'all-clear' ? CheckCircle2 : CalendarClock
+  return (
+    <div
+      className={`flex items-start gap-3 rounded-2xl border px-4 py-3.5 ${
+        watch ? 'border-destructive/30 bg-destructive/5' : 'border-border bg-card'
+      }`}
+    >
+      <span
+        className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
+          watch ? 'bg-destructive/15' : 'bg-secondary/15'
+        }`}
+      >
+        <Icon size={15} className={watch ? 'text-destructive' : 'text-secondary'} />
+      </span>
+      <div>
+        <p className={`text-sm font-medium leading-snug ${watch ? 'text-destructive' : 'text-foreground'}`}>
+          {prediction.reason}
+        </p>
+        <p className="text-[11px] text-muted-foreground mt-1">
+          {Math.round(prediction.confidence * 100)}% confident{prediction.windowDays !== null ? ` · ${prediction.windowDays}-day window` : ''}
+        </p>
+      </div>
     </div>
   )
 }

@@ -2,6 +2,11 @@ import { describe, it, expect } from 'vitest'
 import { buildBehaviorModel } from './index'
 import { answerQuestion, buildGreeting, formatMoney } from './chat'
 import type { ChatContext } from './chat'
+import { buildDecisionLog } from './decisions'
+import { weeklyFocus } from './focus'
+import { computeHealthScore } from './health'
+import { predict } from './predict'
+import { explainSafeToSpend } from './safetospend'
 import type { BrainCommitment, BrainTransaction } from './types'
 
 function iso(dayOffset: number): string {
@@ -13,19 +18,31 @@ function iso(dayOffset: number): string {
   return `${y}-${m}-${day}`
 }
 
-function ctx(overrides: { transactions?: BrainTransaction[]; commitments?: BrainCommitment[]; balance?: number; shortfall?: number } = {}): ChatContext {
+function ctx(overrides: { transactions?: BrainTransaction[]; commitments?: BrainCommitment[]; balance?: number; shortfall?: number; safeToSpend?: number } = {}): ChatContext {
   const transactions = overrides.transactions ?? []
   const commitments = overrides.commitments ?? []
   const balance = overrides.balance ?? 75000
+  const safeToSpend = overrides.safeToSpend ?? 60000
   const model = buildBehaviorModel({ transactions, commitments, snapshots: [], balance })
+  const explanation = explainSafeToSpend({ transactions, commitments, safeToSpend })
   return {
     name: 'joseph',
     balance,
-    safeToSpend: 60000,
+    safeToSpend,
     upcomingTotal: 15000,
     shortfall: overrides.shortfall ?? Math.max(0, 15000 - balance),
     model,
     transactions,
+    decisionLog: buildDecisionLog({
+      model,
+      balance,
+      safeToSpend,
+      health: computeHealthScore(model),
+      focus: weeklyFocus(model),
+      explanation,
+    }),
+    predictions: predict({ model, balance, explanation }),
+    latestOutcome: null,
   }
 }
 
@@ -132,6 +149,99 @@ describe('answerQuestion — commitments', () => {
   it('reports reliability from evaluated history', () => {
     const reply = answerQuestion('How is my Cell reliability doing?', ctx({ commitments: history(5, 4) }))
     expect(reply.text).toContain('80%')
+  })
+})
+
+describe('answerQuestion — why', () => {
+  it('explains the safe-to-spend decision from the log', () => {
+    const transactions: BrainTransaction[] = []
+    for (let i = 0; i < 12; i++) {
+      transactions.push({ id: i, type: 'income', amount: 50000, source: 'Freelance', date: iso(-i * 7) })
+    }
+    const reply = answerQuestion('Why is my safe-to-spend this amount?', ctx({ transactions, commitments: history(5, 4) }))
+    expect(reply.text).toContain('Confidence')
+    expect(reply.text).toContain('observed points')
+  })
+
+  it('explains the health score decision', () => {
+    const transactions: BrainTransaction[] = []
+    for (let i = 0; i < 12; i++) {
+      transactions.push({ id: i, type: 'income', amount: 50000, source: 'Freelance', date: iso(-i * 7) })
+    }
+    const reply = answerQuestion('Why is my score so low?', ctx({ transactions }))
+    expect(reply.text).toContain('Score of')
+  })
+
+  it('explains the weekly focus decision', () => {
+    const reply = answerQuestion('Why are you telling me to focus on this?', ctx())
+    expect(reply.text).toContain('Record')
+    expect(reply.text).toContain('Confidence')
+  })
+})
+
+describe('answerQuestion — what happens next', () => {
+  it('refuses to predict with insufficient history', () => {
+    const reply = answerQuestion('What happens next?', ctx())
+    expect(reply.text).toContain("enough history")
+  })
+
+  it('warns about running short before the next income', () => {
+    const transactions: BrainTransaction[] = []
+    for (let i = 0; i < 12; i++) {
+      transactions.push({ id: i, type: 'income', amount: 100000, source: 'Freelance', date: iso(-i * 7) })
+    }
+    for (let i = 0; i < 6; i++) {
+      transactions.push({ id: 200 + i, type: 'expense', amount: 20000, category: 'food', date: iso(-(i * 7 + 2)) })
+    }
+    const reply = answerQuestion('What happens next?', ctx({ transactions, balance: 50000 }))
+    expect(reply.text).toContain('run short')
+    expect(reply.text).toContain('confident')
+  })
+})
+
+describe('answerQuestion — coaching outcome', () => {
+  it('reports the measured outcome when the focus has one', () => {
+    const reply = answerQuestion('Has my focus worked?', {
+      ...ctx(),
+      latestOutcome: {
+        focusKey: 'postIncomeAcceleration',
+        measured: true,
+        metric: 'post-income 72h spending',
+        before: 85000,
+        after: 51000,
+        deltaPct: -40,
+        improved: true,
+        text: 'You spent UGX 51,000 in the 72 hours after your last deposit, vs your usual UGX 85,000 — that\u2019s 40% less.',
+        measuredAt: '2026-01-05',
+        sampleSize: 7,
+      },
+    })
+    expect(reply.text).toContain('40% less')
+    expect(reply.text).toContain('keep the habit going')
+  })
+
+  it('says nothing has been measured yet when there is no outcome', () => {
+    const reply = answerQuestion('Did the coaching help?', ctx())
+    expect(reply.text).toContain('No coaching outcome')
+  })
+
+  it('keeps the focus honestly when the pattern did not improve', () => {
+    const reply = answerQuestion('Is my focus working?', {
+      ...ctx(),
+      latestOutcome: {
+        focusKey: 'savingsConsistency',
+        measured: true,
+        metric: 'weekly balance movement',
+        before: 3000,
+        after: -2000,
+        deltaPct: null,
+        improved: false,
+        text: 'Your balance moved UGX -2,000 this week, vs an average of UGX 3,000 per week before.',
+        measuredAt: '2026-01-05',
+        sampleSize: 3,
+      },
+    })
+    expect(reply.text).toContain('Not yet')
   })
 })
 

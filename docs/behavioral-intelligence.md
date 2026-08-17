@@ -1,4 +1,4 @@
-# Nafaka — Behavioral Intelligence Architecture (Layer 0: Learn)
+﻿# Nafaka — Behavioral Intelligence Architecture (Layer 0: Learn)
 
 The Layer 0 design: **what Nafaka learns about a person, what data it needs, how behavioral signals are calculated, how confidence changes over time, and how signals feed Patterns → Score → Coach → Chat.**
 
@@ -387,3 +387,62 @@ insights = [
 ```
 
 Which is exactly the intelligence the product thesis promises: *not* "income 500k, expenses 420k" but "commitment failure isn't Brian's risk — post-income spending acceleration is."
+
+---
+
+## v1.5 — Situation reads, stability, outcomes, adaptive coaching
+
+Built on the deterministic engine (engine → decision → evidence → explanation), the v1.5 layer adds four things:
+
+### 1. Situation reads carry their own evidence (`lib/brain/situation.ts`)
+
+`readSituation()` returns `{ situation, confidence, evidence[], sampleSize, windowDays, reason }` for every verdict. The situation is still deterministic rules over signals — no LLM classification — but now every read is explainable:
+
+```
+state: UNDER_PRESSURE
+confidence: 0.71
+evidence: ["debt absorbs 60% of income (8 repayments)", "balance UGX 500,000"]
+sampleSize: 8
+reason: "Cash is tight right now — …"
+```
+
+Two new situations: **RECOVERING** (state RECOVERY: thin runway that is stabilizing) and **UNKNOWN** ("Nafaka is still learning your financial rhythm") — returned instead of forcing a verdict when fewer than 4 data points exist or no signal has reached 0.3 confidence. EMERGENCY stays factual (balance ≤ 0 or runway < 2 days) and outranks everything.
+
+### 2. Transition stability / hysteresis (`lib/brain/stabilize.ts`)
+
+State and situation reads now pass through a memory-guarded stabilizer:
+
+- **Worsening moves apply immediately** (safety first — pressure is never hidden).
+- **Improvements only stick** after the better read has been observed on 3 distinct days (`minHoldingDays`), so the model cannot whiplash: "stable Monday → under pressure Tuesday → recovering Wednesday" is impossible; a flicker between calm and pressure leaves the held read on pressure.
+- **UNKNOWN never downgrades a held read** — missing evidence doesn't erase a known situation.
+- The memory (`held`, `holdingSince`, `candidate`, streak fields) persists in `finance_states` / localStorage and is fed back into `buildBehaviorModel(…, { stateMemory, situationMemory })`. `model.stateChanged` / `situationChanged` report when a held read actually flipped.
+
+### 3. Outcome tracking — prediction → action → outcome (`lib/brain/outcomes.ts`)
+
+`measureOutcomes()` compares each coaching focus against the user's own earlier behavior and only reports when a window is attributable:
+
+- **postIncomeAcceleration** — spending in the 72h after the latest deposit vs the mean of earlier deposit windows (the "85k → 51k, that's 40% less" case). The window must be closed and the outcome must postdate the recommendation before it counts.
+- **commitmentReliability** — the most recent Paid/Missed outcome vs the historical follow-through rate.
+- **savingsConsistency** — this week's balance movement vs the mean of earlier weeks (from weekly snapshots).
+- **state** — balance held or grew this week.
+- debt, resilience, record — honestly reported as "not yet measurable" until the data exists.
+
+### 4. Coaching effectiveness + adaptive coaching (`lib/brain/coaching.ts`, `lib/brain/focus.ts`)
+
+Every recommended focus opens a **coaching record** (id = `${focusKey}-${date}`). `syncCoaching()` closes instances after a 7-day window with an attributable outcome (or when the focus moves on), then opens a fresh instance. `coachingStats()` then produces per-focus effectiveness:
+
+```
+focus: postIncomeAcceleration
+recommended: 3   improved: 2   pending: 1   successRate: 0.67
+```
+
+`weeklyFocus(model, { successRates })` re-ranks matching candidates so the engine prefers what has worked for this person: safety reads (state, debt) always win; among behavioral candidates, measured success rates rank first (unmeasured candidates sit at neutral 0.5, so a focus that has consistently failed sinks below unexplored ones).
+
+### Wiring
+
+- `lib/store.tsx` — persists `coachingLog` + `stateMemory` + `situationMemory`; exposes `focus`, `outcomes`, `coachingStats`, `lastCoachingOutcome`; state/situation are stabilized per user.
+- Weekly Review — beat 5 "Did it work?" reports the closed outcome ("You changed the pattern" / "Still building the habit") plus the coaching track record and days the situation read has held steady.
+- Chat — "Has my focus worked?" answers from the latest outcome.
+- LLM context (`buildLlmContext`) — adds `coaching` so Gemini explains the measured outcome rather than inventing one.
+
+Tests: `situation.test.ts` (read evidence), `stabilize.test.ts` (transition matrix + flicker), `outcomes.test.ts`, `coaching.test.ts`, `focus.test.ts` (adaptive ranking).

@@ -1,5 +1,9 @@
 import { confidencePhrase, regularityCopy, stateLabel } from './describe'
 import { daysBetween, toISODate } from './stats'
+import type { NafakaDecision } from './decisions'
+import type { CoachingOutcome } from './outcomes'
+import type { NafakaPrediction } from './predict'
+import { situationLabel } from './situation'
 import type { BehaviorModel, BrainTransaction } from './types'
 import { dailyTotals } from './weekly'
 
@@ -11,6 +15,10 @@ export type ChatContext = {
   shortfall: number
   model: BehaviorModel
   transactions: BrainTransaction[]
+  decisionLog: NafakaDecision[]
+  predictions: NafakaPrediction[]
+  /** most recently measured coaching outcome, when one exists */
+  latestOutcome: CoachingOutcome | null
 }
 
 export type ChatReply = {
@@ -50,11 +58,80 @@ export function buildGreeting(ctx: ChatContext): string {
 export function answerQuestion(question: string, ctx: ChatContext): ChatReply {
   const q = question.toLowerCase()
 
+  if (/(why|explain|reason|because)/.test(q)) {
+    const why = whyReply(q, ctx)
+    if (why) return why
+  }
+  if (/(happen next|look.{0,8}(ahead|forward)|what.{0,16}(next|coming|forecast)|run (out|short)|risk)/.test(q)) {
+    const next = whatNextReply(ctx)
+    if (next) return next
+  }
   if (/(sunday|overspend|weekend|run low|spending pattern|which day)/.test(q)) return weekdayReply(ctx)
   if (/(paid|income|salary|when will|when do|next payment|payday|likely)/.test(q)) return incomeReply(ctx)
   if (/(cell|reliab|commitment|faithful|tithe|offering|missed)/.test(q)) return commitmentReply(ctx)
   if (/(afford|worth|buy|can i|spend|pay\b)/.test(q)) return affordReply(question, ctx)
+  if (/(focus|coach|advice|goal)/.test(q) && /(work|working|help|helped|change|improve|result)/.test(q)) {
+    const outcome = outcomeReply(ctx)
+    if (outcome) return outcome
+  }
   return overviewReply(ctx)
+}
+
+function outcomeReply(ctx: ChatContext): ChatReply | null {
+  const o = ctx.latestOutcome
+  if (o === null || !o.measured) {
+    return {
+      text: 'No coaching outcome has been measured yet. Nafaka closes each weekly focus after a week of observation — keep recording and the verdict lands on its own.',
+    }
+  }
+  const verdict =
+    o.improved === true
+      ? 'That is a measurable change — keep the habit going.'
+      : o.improved === false
+        ? 'Not yet — this focus stays on the table until the pattern shifts.'
+        : ''
+  return { text: `${o.text} ${verdict}`.trim() }
+}
+
+function whatNextReply(ctx: ChatContext): ChatReply | null {
+  const urgent = ctx.predictions.filter((p) => p.severity === 'watch')
+  const calm = ctx.predictions.filter((p) => p.severity !== 'watch')
+  if (ctx.predictions.length === 0) {
+    return {
+      text: "I don't have enough history to predict your next few days yet. Keep recording income, expenses and commitment outcomes \u2014 the look-ahead sharpens as weeks accumulate.",
+    }
+  }
+  const parts: string[] = []
+  for (const p of urgent.slice(0, 1)) {
+    parts.push(`${p.reason} (${Math.round(p.confidence * 100)}% confident, based on ${p.evidence.slice(-1).join(', ')}).`)
+  }
+  for (const p of calm.slice(0, 1)) {
+    parts.push(p.reason)
+  }
+  return { text: parts.join(' ') }
+}
+
+function whyReply(q: string, ctx: ChatContext): ChatReply | null {
+  const find = (id: NafakaDecision['id']) => ctx.decisionLog.find((d) => d.id === id)
+  const summary = (d: NafakaDecision): string =>
+    `${d.reason} Confidence ${Math.round(d.confidence * 100)}%${Object.keys(d.signals).length > 0 ? `, drawn from ${Object.values(d.signals)
+      .map((s) => `${s.sampleSize} observed points`)
+      .join(' and ')}.` : ''}`
+
+  if (/(score|health)/.test(q)) {
+    const d = find('HEALTH_SCORE')
+    if (d) return { text: summary(d) }
+  }
+  if (/(safe[ ,-]?to[ ,-]?spend|amount|drop|low|less|more|pace)/.test(q)) {
+    const d = find('SAFE_TO_SPEND')
+    if (d) return { text: summary(d) }
+  }
+  if (/(focus|coach|improve|weakest)/.test(q)) {
+    const d = find('WEEKLY_FOCUS')
+    if (d) return { text: summary(d) }
+  }
+
+  return null
 }
 
 function affordReply(question: string, ctx: ChatContext): ChatReply {
@@ -173,6 +250,6 @@ function overviewReply(ctx: ChatContext): ChatReply {
       shortfall > 0
         ? ` ${formatMoney(shortfall)} of upcoming commitments is not yet covered by your balance.`
         : ''
-    }`,
+    } Nafaka reads your situation as ${situationLabel(model.situation)}.`,
   }
 }

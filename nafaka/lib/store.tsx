@@ -3,8 +3,15 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, useRef, type ReactNode } from 'react'
 import { buildBehaviorModel } from './brain'
 import { storeCommitmentsToBrain, storeSnapshotsToBrain, storeTransactionsToBrain } from './brain/adapters'
+import { coachingStats, latestClosedOutcome, successRatesByKey, syncCoaching, type CoachingRecord, type CoachingStats } from './brain/coaching'
+import { buildDecisionLog, type NafakaDecision } from './brain/decisions'
+import { weeklyFocus, type WeekFocus } from './brain/focus'
+import { computeHealthScore } from './brain/health'
+import { measureOutcomes, type CoachingOutcome } from './brain/outcomes'
+import { predict, type NafakaPrediction } from './brain/predict'
+import { explainSafeToSpend, type SafeToSpendExplanation } from './brain/safetospend'
 import { toISODate } from './brain/stats'
-import type { BehaviorModel } from './brain/types'
+import type { BehaviorModel, FinancialState, Memory, Situation } from './brain/types'
 import type { User } from '@supabase/supabase-js'
 import { createClient } from '@/utils/supabase/client'
 
@@ -100,7 +107,14 @@ let nextNetworkId = 30
 const STORAGE_KEY = 'nafaka-finance-v1'
 const SCHEMA_VERSION = 1
 
-type PersistedFinance = Pick<FinancialContextValue, 'profile' | 'transactions' | 'commitments' | 'goals' | 'network'>
+type PersistedFinance = Pick<
+  FinancialContextValue,
+  'profile' | 'transactions' | 'commitments' | 'goals' | 'network'
+> & {
+  coachingLog?: CoachingRecord[]
+  stateMemory?: Memory<FinancialState> | null
+  situationMemory?: Memory<Situation> | null
+}
 
 function timeNow(): string {
   const d = new Date()
@@ -218,6 +232,20 @@ type FinancialContextValue = {
   addNetworkEntry: (name: string, relationship: string, direction: 'lent' | 'borrowed', amount: number) => void
 
   behaviorModel: BehaviorModel
+  /** why the current safe-to-spend amount is what it is */
+  safeToSpendWhy: SafeToSpendExplanation
+  /** machine-readable evidence behind every coaching statement */
+  decisionLog: NafakaDecision[]
+  /** evidence-gated predictions of what happens next */
+  predictions: NafakaPrediction[]
+  /** the one coaching focus this week (adaptive: prefers what has worked) */
+  focus: WeekFocus
+  /** current measurable outcomes per focus type */
+  outcomes: CoachingOutcome[]
+  /** coaching effectiveness per focus key */
+  coachingStats: CoachingStats[]
+  /** the most recently measured coaching outcome */
+  lastCoachingOutcome: CoachingOutcome | null
   /** the signed-in Supabase user, or null while signed out */
   user: User | null
 }
@@ -230,8 +258,11 @@ export function FinancialProvider({ children }: { children: ReactNode }) {
   const [commitments, setCommitments] = useState<Commitment[]>(defaultCommitments)
   const [goals, setGoals] = useState<Goal[]>(defaultGoals)
   const [network, setNetwork] = useState<NetworkPerson[]>(defaultNetwork)
+  const [coachingLog, setCoachingLog] = useState<CoachingRecord[]>([])
   const [isHydrated, setIsHydrated] = useState(false)
   const [user, setUser] = useState<User | null>(null)
+  const [stateMemory, setStateMemory] = useState<Memory<FinancialState> | null>(null)
+  const [situationMemory, setSituationMemory] = useState<Memory<Situation> | null>(null)
   const lastSavedRef = useRef('')
 
   React.useEffect(() => {
@@ -255,6 +286,9 @@ export function FinancialProvider({ children }: { children: ReactNode }) {
         if (source.commitments) setCommitments(source.commitments)
         if (source.goals) setGoals(source.goals)
         if (source.network) setNetwork(source.network)
+        if (source.coachingLog) setCoachingLog(source.coachingLog)
+        if (source.stateMemory) setStateMemory(source.stateMemory)
+        if (source.situationMemory) setSituationMemory(source.situationMemory)
         setIsHydrated(true)
       })
     })()
@@ -270,7 +304,16 @@ export function FinancialProvider({ children }: { children: ReactNode }) {
     nextCommitmentId = Math.max(nextCommitmentId, ...commitments.map((c) => c.id))
     nextGoalId = Math.max(nextGoalId, ...goals.map((g) => g.id))
     nextNetworkId = Math.max(nextNetworkId, ...network.map((p) => p.id))
-    const state = { profile, transactions, commitments, goals, network }
+    const state: PersistedFinance = {
+      profile,
+      transactions,
+      commitments,
+      goals,
+      network,
+      coachingLog,
+      stateMemory,
+      situationMemory,
+    }
     const serialized = JSON.stringify(state)
     if (serialized === lastSavedRef.current) return
     lastSavedRef.current = serialized
@@ -283,7 +326,7 @@ export function FinancialProvider({ children }: { children: ReactNode }) {
           if (error) console.error('Failed to sync finance state:', error.message)
         })
     }
-  }, [isHydrated, user, profile, transactions, commitments, goals, network])
+  }, [isHydrated, user, profile, transactions, commitments, goals, network, coachingLog, stateMemory, situationMemory])
 
   const balance = computeBalance(transactions, profile.startingBalance)
   const upcomingTotal = computeUpcomingTotal(commitments)
@@ -299,13 +342,86 @@ export function FinancialProvider({ children }: { children: ReactNode }) {
 
   const behaviorModel = useMemo(
     () =>
-      buildBehaviorModel({
+      buildBehaviorModel(
+        {
+          transactions: storeTransactionsToBrain(transactions),
+          commitments: storeCommitmentsToBrain(commitments),
+          snapshots: snapshotsForBrain,
+          balance,
+        },
+        isHydrated ? { stateMemory, situationMemory } : {},
+      ),
+    [transactions, commitments, snapshotsForBrain, balance, isHydrated, stateMemory, situationMemory],
+  )
+
+  const safeToSpendWhy = useMemo<SafeToSpendExplanation>(
+    () =>
+      explainSafeToSpend({
+        transactions: storeTransactionsToBrain(transactions),
+        commitments: storeCommitmentsToBrain(commitments),
+        safeToSpend,
+        postIncomeAcceleration: behaviorModel.signals.postIncomeAcceleration,
+      }),
+    [transactions, commitments, safeToSpend, behaviorModel],
+  )
+
+  const outcomes = useMemo<CoachingOutcome[]>(
+    () =>
+      measureOutcomes({
+        model: behaviorModel,
         transactions: storeTransactionsToBrain(transactions),
         commitments: storeCommitmentsToBrain(commitments),
         snapshots: snapshotsForBrain,
-        balance,
       }),
-    [transactions, commitments, snapshotsForBrain, balance],
+    [behaviorModel, transactions, commitments, snapshotsForBrain],
+  )
+
+  const focus = useMemo<WeekFocus>(
+    () =>
+      weeklyFocus(behaviorModel, {
+        successRates: successRatesByKey(coachingStats(coachingLog)),
+      }),
+    [behaviorModel, coachingLog],
+  )
+
+  const coaching = useMemo(
+    () => syncCoaching({ records: coachingLog, focus, outcomes }),
+    [coachingLog, focus, outcomes],
+  )
+
+  const coachingStatsResult = useMemo<CoachingStats[]>(() => coachingStats(coaching.records), [coaching.records])
+  const lastCoachingOutcome = useMemo<CoachingOutcome | null>(() => latestClosedOutcome(coaching.records), [coaching.records])
+
+  const coachingJson = JSON.stringify(coaching.records)
+  if (JSON.stringify(coachingLog) !== coachingJson) {
+    setCoachingLog(coaching.records)
+  }
+
+  const modelStateMemory = behaviorModel.stateMemory ?? null
+  if (JSON.stringify(modelStateMemory) !== JSON.stringify(stateMemory)) {
+    setStateMemory(modelStateMemory)
+  }
+  const modelSituationMemory = behaviorModel.situationMemory ?? null
+  if (JSON.stringify(modelSituationMemory) !== JSON.stringify(situationMemory)) {
+    setSituationMemory(modelSituationMemory)
+  }
+
+  const decisionLog = useMemo<NafakaDecision[]>(
+    () =>
+      buildDecisionLog({
+        model: behaviorModel,
+        balance,
+        safeToSpend,
+        health: computeHealthScore(behaviorModel),
+        focus,
+        explanation: safeToSpendWhy,
+      }),
+    [behaviorModel, balance, safeToSpend, focus, safeToSpendWhy],
+  )
+
+  const predictions = useMemo<NafakaPrediction[]>(
+    () => predict({ model: behaviorModel, balance, explanation: safeToSpendWhy }),
+    [behaviorModel, balance, safeToSpendWhy],
   )
 
   const setProfileName = useCallback((name: string) => {
@@ -407,6 +523,13 @@ export function FinancialProvider({ children }: { children: ReactNode }) {
       goals, addGoal,
       network, addNetworkEntry,
       behaviorModel,
+      safeToSpendWhy,
+      decisionLog,
+      predictions,
+      focus,
+      outcomes,
+      coachingStats: coachingStatsResult,
+      lastCoachingOutcome,
       user,
     }}
     >

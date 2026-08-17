@@ -2,6 +2,11 @@ import { describe, it, expect } from 'vitest'
 import { buildBehaviorModel } from './index'
 import { buildLlmContext } from './llm'
 import type { ChatContext } from './chat'
+import { buildDecisionLog } from './decisions'
+import { weeklyFocus } from './focus'
+import { computeHealthScore } from './health'
+import { predict } from './predict'
+import { explainSafeToSpend } from './safetospend'
 import type { BrainCommitment, BrainTransaction } from './types'
 import type { Commitment } from '../store'
 
@@ -18,15 +23,27 @@ function ctx(overrides: { transactions?: BrainTransaction[]; commitments?: Brain
   const transactions = overrides.transactions ?? []
   const commitments = overrides.commitments ?? []
   const balance = 75000
+  const safeToSpend = 60000
   const model = buildBehaviorModel({ transactions, commitments, snapshots: [], balance })
+  const explanation = explainSafeToSpend({ transactions, commitments, safeToSpend })
   return {
     name: 'joseph',
     balance,
-    safeToSpend: 60000,
+    safeToSpend,
     upcomingTotal: 15000,
     shortfall: 0,
     model,
     transactions,
+    decisionLog: buildDecisionLog({
+      model,
+      balance,
+      safeToSpend,
+      health: computeHealthScore(model),
+      focus: weeklyFocus(model),
+      explanation,
+    }),
+    predictions: predict({ model, balance, explanation }),
+    latestOutcome: null,
   }
 }
 
@@ -82,5 +99,19 @@ describe('buildLlmContext', () => {
   it('reports zero shortfall instead of negative values', () => {
     const digest = buildLlmContext(ctx(), [])
     expect(digest.shortfall).toBe(0)
+  })
+
+  it('includes the decision log with machine-readable evidence', () => {
+    const digest = buildLlmContext(ctx(), [])
+    expect(digest.decisions.map((d) => d.decision)).toEqual(['SAFE_TO_SPEND', 'HEALTH_SCORE', 'WEEKLY_FOCUS'])
+    const safe = digest.decisions.find((d) => d.decision === 'SAFE_TO_SPEND')
+    expect(safe?.value).toBe(60000)
+    expect(safe?.reason.length).toBeGreaterThan(10)
+  })
+
+  it('exposes the situation and any predictions', () => {
+    const digest = buildLlmContext(ctx(), [])
+    expect(['STABLE', 'EMERGENCY', 'UNDER_PRESSURE', 'INCOME_UNCERTAIN', 'COMMITMENT_HEAVY', 'CASH_RICH', 'BUILDING_BUFFER', 'RECOVERING', 'UNKNOWN']).toContain(digest.situation)
+    expect(Array.isArray(digest.predictions)).toBe(true)
   })
 })

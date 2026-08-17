@@ -27,7 +27,8 @@ const chartConfig = {
 
 const suggestions = [
   'Can I afford this today?',
-  'Why did I overspend on Sunday?',
+  'Why is my safe-to-spend this amount?',
+  'What happens next?',
   'When will I likely get paid next?',
   'How is my Cell reliability doing?',
 ]
@@ -35,7 +36,7 @@ const suggestions = [
 export default function AIChat() {
   const display = useGoogleFont('Fraunces')
   const body = useGoogleFont('Manrope')
-  const { profile, balance, safeToSpend, upcomingTotal, shortfall, behaviorModel, transactions, commitments } = useFinance()
+  const { profile, balance, safeToSpend, upcomingTotal, shortfall, behaviorModel, transactions, commitments, decisionLog, predictions, lastCoachingOutcome } = useFinance()
 
   const ctx = useMemo<ChatContext>(
     () => ({
@@ -46,8 +47,11 @@ export default function AIChat() {
       shortfall,
       model: behaviorModel,
       transactions: storeTransactionsToBrain(transactions),
+      decisionLog,
+      predictions,
+      latestOutcome: lastCoachingOutcome,
     }),
-    [profile.name, balance, safeToSpend, upcomingTotal, shortfall, behaviorModel, transactions],
+    [profile.name, balance, safeToSpend, upcomingTotal, shortfall, behaviorModel, transactions, decisionLog, predictions, lastCoachingOutcome],
   )
 
   const [messages, setMessages] = useState<Message[]>(() => [
