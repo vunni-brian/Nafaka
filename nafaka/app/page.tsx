@@ -12,9 +12,9 @@ export default function Welcome() {
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden" style={{ fontFamily: body }}>
-      <div className="absolute -top-24 -right-20 w-72 h-72 rounded-full bg-primary/20 blur-3xl" />
-      <div className="absolute top-1/3 -left-24 w-64 h-64 rounded-full bg-secondary/25 blur-3xl" />
-      <div className="absolute bottom-0 right-0 w-80 h-80 rounded-full bg-accent/40 blur-3xl" />
+      <div className="absolute -top-24 -right-20 w-72 h-72 rounded-full bg-primary/15 blur-3xl" />
+      <div className="absolute top-1/3 -left-24 w-64 h-64 rounded-full bg-brand-300/30 blur-3xl" />
+      <div className="absolute bottom-0 right-0 w-80 h-80 rounded-full bg-accent-300/35 blur-3xl" />
 
       <div className="relative max-w-sm mx-auto min-h-screen flex flex-col px-6 pt-16 pb-10">
         <div className="flex items-center gap-2.5">

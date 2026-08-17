@@ -8,6 +8,12 @@ Designed first for Uganda (UGX, Mobile Money, tithe, cell meetings, informal deb
 
 Phase 0 status: prototype validating the mental model — users understand and trust the core flow before persistence or real AI is added.
 
+## Prototype reference
+
+`prototypes/nafaka1` holds the original Bolt prototype (Vite + React SPA) that defined the current look — light `ink`/`brand` palette, Plus Jakarta Sans + Fraunces, soft shadows, mobile-first shell. The production app carries that design language: the palette lives in `app/globals.css` (`@theme` tokens), the fonts in `lib/fonts.ts`, and the prototype's `.card` / `.pill` / `.btn-primary` / `.btn-ghost` / `.input` utilities are available app-wide. It is reference only — not wired into the build.
+
+---
+
 ## Routes
 
 | Route | Screen | Purpose |
