@@ -1,16 +1,16 @@
 'use client'
 
 import React, { useState } from 'react'
-import Link from 'next/link'
 import BottomNav from '@/components/BottomNav'
+import AppHeader from '@/components/AppHeader'
 import { useGoogleFont } from '@/lib/fonts'
 import { useFinance } from '@/lib/store'
-import { ChevronLeft, ArrowDownLeft, ArrowUpRight, Plus, X, Check, Users2 } from 'lucide-react'
+import { ArrowDownLeft, ArrowUpRight, Plus, X, Check, HeartHandshake } from 'lucide-react'
+import { SectionTitle } from '@/components/proto/ui'
 
 type Direction = 'lent' | 'borrowed'
 
 export default function SupportNetwork() {
-  const display = useGoogleFont('Fraunces')
   const body = useGoogleFont('Manrope')
   const { network, addNetworkEntry } = useFinance()
 
@@ -38,102 +38,91 @@ export default function SupportNetwork() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-32" style={{ fontFamily: body }}>
-      <div className="max-w-sm mx-auto px-6 pt-8">
-        <div className="flex items-center gap-3 mb-8">
-          <Link
-            href="/DailySnapshot"
-            className="cursor-pointer w-9 h-9 rounded-full flex items-center justify-center border border-border text-foreground hover:bg-muted transition-colors"
-            aria-label="Back"
-          >
-            <ChevronLeft size={18} />
-          </Link>
-          <h1 style={{ fontFamily: display }} className="text-lg text-foreground">
-            Support network
-          </h1>
+    <div className="min-h-screen bg-background pb-28" style={{ fontFamily: body }}>
+      <AppHeader />
+      <main className="mx-auto max-w-md px-5 pt-4 space-y-6 animate-fade-up">
+        <div>
+          <h1 className="font-display text-2xl font-semibold text-ink-900">Support Network</h1>
+          <p className="text-sm text-ink-500 mt-1">
+            Money moves between people who care about each other. Keep track — without keeping score.
+          </p>
         </div>
 
-        <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
-          Money moves between people who care about each other. Keeping track helps without keeping score.
-        </p>
-
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          <div className="bg-card border border-border rounded-2xl p-4">
+        <div className="grid grid-cols-2 gap-3">
+          <div className="card p-4">
             <div className="flex items-center gap-2 mb-2">
-              <span className="w-7 h-7 rounded-full bg-muted flex items-center justify-center">
-                <ArrowDownLeft size={14} className="text-secondary" />
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-100 text-brand-700">
+                <ArrowUpRight size={14} />
               </span>
-              <p className="text-xs text-muted-foreground">Owed to you</p>
+              <p className="text-xs text-ink-500">Given · YTD</p>
             </div>
-            <p style={{ fontFamily: display }} className="text-xl text-foreground">
-              {fmt(totalOwedToYou)}
-            </p>
+            <p className="font-display text-xl font-semibold text-ink-900">{fmt(totalOwedToYou)}</p>
           </div>
-          <div className="bg-card border border-border rounded-2xl p-4">
+          <div className="card p-4">
             <div className="flex items-center gap-2 mb-2">
-              <span className="w-7 h-7 rounded-full bg-muted flex items-center justify-center">
-                <ArrowUpRight size={14} className="text-primary" />
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent-100 text-accent-700">
+                <ArrowDownLeft size={14} />
               </span>
-              <p className="text-xs text-muted-foreground">You owe</p>
+              <p className="text-xs text-ink-500">Received · YTD</p>
             </div>
-            <p style={{ fontFamily: display }} className="text-xl text-foreground">
-              {fmt(totalYouOwe)}
-            </p>
+            <p className="font-display text-xl font-semibold text-ink-900">{fmt(totalYouOwe)}</p>
           </div>
         </div>
 
-        <h2 className="text-xs font-semibold tracking-wide uppercase text-muted-foreground mb-3">People</h2>
-        {network.length > 0 ? (
-          <div className="space-y-2.5 mb-6">
-            {network.map((p) => (
-              <div key={p.id} className="flex items-center gap-3 bg-card border border-border rounded-2xl px-4 py-3.5">
-                <span className="w-9 h-9 rounded-full bg-muted flex items-center justify-center shrink-0 text-xs font-semibold text-foreground">
-                  {p.initials}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{p.name}</p>
-                  <p className="text-xs text-muted-foreground">{p.relationship} &middot; {p.lastEntry}</p>
+        <div>
+          <SectionTitle title="People" hint={`${network.length} in your circle`} />
+          {network.length > 0 ? (
+            <div className="space-y-3">
+              {network.map((p) => (
+                <div key={p.id} className="card p-4 flex items-center gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-600 text-white text-xs font-bold">
+                    {p.initials}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-ink-900 truncate">{p.name}</p>
+                    <p className="text-xs text-ink-500 mt-0.5">{p.relationship} &middot; {p.lastEntry}</p>
+                  </div>
+                  <p className={`text-sm font-bold whitespace-nowrap ${p.balance >= 0 ? 'text-brand-600' : 'text-accent-700'}`}>
+                    {p.balance >= 0 ? '+' : '-'}{fmt(p.balance)}
+                  </p>
                 </div>
-                <p className={`text-sm font-semibold ${p.balance >= 0 ? 'text-secondary' : 'text-primary'}`}>
-                  {p.balance >= 0 ? '+' : '-'}{fmt(p.balance)}
-                </p>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-10 border border-dashed border-border rounded-2xl mb-6">
-            <Users2 size={22} className="text-muted-foreground mb-2" />
-            <p className="text-sm text-muted-foreground">No one in your network yet</p>
-            <p className="text-xs text-muted-foreground/60 mt-1">Log a give or borrow below</p>
-          </div>
-        )}
+              ))}
+            </div>
+          ) : (
+            <div className="card p-8 text-center">
+              <HeartHandshake size={22} className="text-ink-400 mx-auto mb-3" />
+              <p className="text-sm text-ink-500">No one in your network yet</p>
+              <p className="text-xs text-ink-400 mt-1">Log a give or borrow below</p>
+            </div>
+          )}
+        </div>
 
         {showForm ? (
-          <div className="bg-card border border-border rounded-2xl p-5 mb-6">
+          <div className="card p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold text-foreground">Log an exchange</h2>
+              <h2 className="font-display text-base font-semibold text-ink-900">Log an exchange</h2>
               <button
                 onClick={() => setShowForm(false)}
-                className="cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
+                className="text-ink-500 hover:text-ink-800 transition"
                 aria-label="Close"
               >
                 <X size={16} />
               </button>
             </div>
 
-            <div className="flex bg-muted rounded-full p-1 mb-3">
+            <div className="flex bg-ink-100 rounded-full p-1 mb-4">
               <button
                 onClick={() => setDirection('lent')}
-                className={`cursor-pointer flex-1 rounded-full py-2 text-xs font-semibold transition-colors ${
-                  direction === 'lent' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                className={`flex-1 rounded-full py-2 text-xs font-semibold transition ${
+                  direction === 'lent' ? 'bg-white text-brand-700 shadow-sm' : 'text-ink-500 hover:text-ink-800'
                 }`}
               >
                 I gave / lent
               </button>
               <button
                 onClick={() => setDirection('borrowed')}
-                className={`cursor-pointer flex-1 rounded-full py-2 text-xs font-semibold transition-colors ${
-                  direction === 'borrowed' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                className={`flex-1 rounded-full py-2 text-xs font-semibold transition ${
+                  direction === 'borrowed' ? 'bg-white text-brand-700 shadow-sm' : 'text-ink-500 hover:text-ink-800'
                 }`}
               >
                 I borrowed
@@ -146,7 +135,7 @@ export default function SupportNetwork() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Who&rsquo;s this with? e.g. Aunt Grace"
-                className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm text-foreground outline-none focus:border-primary placeholder:text-muted-foreground transition-colors"
+                className="input"
               />
               <input
                 type="text"
@@ -154,23 +143,19 @@ export default function SupportNetwork() {
                 value={amount}
                 onChange={(e) => setAmount(e.target.value.replace(/[^0-9]/g, ''))}
                 placeholder="Amount (UGX)"
-                className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm text-foreground outline-none focus:border-primary placeholder:text-muted-foreground transition-colors"
+                className="input"
               />
               <input
                 type="text"
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="Note (optional)"
-                className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm text-foreground outline-none focus:border-primary placeholder:text-muted-foreground transition-colors"
+                className="input"
               />
               <button
                 disabled={!canAdd}
                 onClick={handleAdd}
-                className={`cursor-pointer w-full flex items-center justify-center gap-2 rounded-full py-3.5 text-sm font-semibold transition-colors ${
-                  canAdd
-                    ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                    : 'bg-muted text-muted-foreground cursor-not-allowed'
-                }`}
+                className={`btn-primary w-full ${!canAdd ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 <Check size={15} />
                 Save entry
@@ -178,15 +163,11 @@ export default function SupportNetwork() {
             </div>
           </div>
         ) : (
-          <button
-            onClick={() => setShowForm(true)}
-            className="cursor-pointer w-full flex items-center justify-center gap-2 rounded-2xl border border-dashed border-border py-4 text-sm font-semibold text-primary hover:bg-muted transition-colors"
-          >
-            <Plus size={16} />
-            Log a give or borrow
+          <button onClick={() => setShowForm(true)} className="btn-ghost w-full">
+            <Plus size={16} /> Log a give or borrow
           </button>
         )}
-      </div>
+      </main>
 
       <BottomNav active="home" />
     </div>

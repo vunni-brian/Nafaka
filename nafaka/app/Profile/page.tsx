@@ -1,19 +1,19 @@
 'use client'
 
 import React, { useState } from 'react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import BottomNav from '@/components/BottomNav'
+import AppHeader from '@/components/AppHeader'
 import { useGoogleFont } from '@/lib/fonts'
 import { useFinance } from '@/lib/store'
 import { createClient } from '@/utils/supabase/client'
-import { ChevronLeft, ChevronRight, Sparkles, Laptop, Check, LogOut } from 'lucide-react'
+import { ChevronRight, Sparkles, Check, LogOut, BellRing } from 'lucide-react'
+import { SectionTitle } from '@/components/proto/ui'
 
 export default function Profile() {
-  const display = useGoogleFont('Fraunces')
   const body = useGoogleFont('Manrope')
   const router = useRouter()
-  const { profile, setProfileName } = useFinance()
+  const { profile, setProfileName, setNotificationsOptIn } = useFinance()
 
   const [editing, setEditing] = useState(false)
   const [nameDraft, setNameDraft] = useState(profile.name)
@@ -42,26 +42,20 @@ export default function Profile() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-32" style={{ fontFamily: body }}>
-      <div className="max-w-sm mx-auto px-6 pt-8">
-        <div className="flex items-center gap-3 mb-8">
-          <Link
-            href="/DailySnapshot"
-            className="cursor-pointer w-9 h-9 rounded-full flex items-center justify-center border border-border text-foreground hover:bg-muted transition-colors"
-            aria-label="Back"
-          >
-            <ChevronLeft size={18} />
-          </Link>
-          <h1 style={{ fontFamily: display }} className="text-lg text-foreground">
-            Profile
-          </h1>
+    <div className="min-h-screen bg-background pb-28" style={{ fontFamily: body }}>
+      <AppHeader />
+      <main className="mx-auto max-w-md px-5 pt-4 space-y-6 animate-fade-up">
+        <div>
+          <h1 className="font-display text-2xl font-semibold text-ink-900">Settings</h1>
+          <p className="text-sm text-ink-500 mt-1">Your profile, preferences, and account.</p>
         </div>
 
-        <div className="flex items-center gap-4 mb-8">
-          <div className="w-16 h-16 rounded-full bg-secondary/15 flex items-center justify-center text-secondary text-xl font-semibold shrink-0">
+        {/* Profile card */}
+        <div className="card p-4 flex items-center gap-4">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-brand-600 text-white text-xl font-semibold">
             {profile.name.charAt(0).toUpperCase()}
           </div>
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             {editing ? (
               <div className="flex items-center gap-2">
                 <input
@@ -69,13 +63,12 @@ export default function Profile() {
                   value={nameDraft}
                   onChange={(e) => setNameDraft(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSaveName()}
-                  className="bg-background border border-border rounded-xl px-3 py-2 text-base text-foreground outline-none focus:border-primary w-40"
-                  style={{ fontFamily: display }}
+                  className="input py-2 w-40"
                   autoFocus
                 />
                 <button
                   onClick={handleSaveName}
-                  className="cursor-pointer w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground hover:bg-primary/90 transition-colors shrink-0"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-600 text-white hover:bg-brand-700 transition"
                   aria-label="Save name"
                 >
                   <Check size={14} />
@@ -83,77 +76,96 @@ export default function Profile() {
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <p style={{ fontFamily: display }} className="text-xl text-foreground">
+                <p className="font-display text-lg font-semibold text-ink-900 truncate">
                   {profile.name.charAt(0).toUpperCase() + profile.name.slice(1)}
                 </p>
                 <button
                   onClick={() => { setNameDraft(profile.name); setEditing(true) }}
-                  className="cursor-pointer text-xs text-primary hover:underline"
+                  className="text-xs font-semibold text-brand-700 hover:underline"
                 >
                   Edit
                 </button>
               </div>
             )}
-            <p className="text-xs text-muted-foreground mt-0.5">{email ?? 'Demo account'}</p>
+            <p className="text-xs text-ink-500 mt-0.5">{email ?? 'Demo account'}</p>
           </div>
         </div>
 
-        <div className="bg-card border border-border rounded-2xl p-5 mb-6">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="w-8 h-8 rounded-full bg-primary/15 flex items-center justify-center">
-              <Laptop size={15} className="text-primary" />
-            </span>
-            <p className="text-sm font-semibold text-foreground">Financial archetype</p>
-          </div>
-          <p className="text-sm text-muted-foreground">{profile.archetype}</p>
-        </div>
-
-        {profile.priorities.length > 0 && (
-          <div className="bg-card border border-border rounded-2xl p-5 mb-6">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="w-8 h-8 rounded-full bg-secondary/15 flex items-center justify-center">
-                <Sparkles size={15} className="text-secondary" />
+        <div>
+          <SectionTitle title="Financial archetype" hint="From your onboarding" />
+          <div className="card p-4">
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-100 text-brand-700">
+                <Sparkles size={17} />
               </span>
-              <p className="text-sm font-semibold text-foreground">Priorities</p>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-ink-900">{profile.archetype || 'Not set yet'}</p>
+                <p className="text-xs text-ink-500 mt-0.5">Your money personality, shaped by how you describe yourself</p>
+              </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {profile.priorities.map((p) => (
+            {profile.priorities.length > 0 && (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {profile.priorities.map((p) => (
+                  <span key={p} className="pill bg-brand-50 text-brand-700 border border-brand-200">{p}</span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div>
+          <SectionTitle title="Preferences" hint="Nafaka behavior" />
+          <div className="card divide-y divide-ink-100">
+            <div className="flex items-center gap-3 px-4 py-3.5">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent-100 text-accent-700">
+                <BellRing size={16} />
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-ink-900">Notifications</p>
+                <p className="text-xs text-ink-500">Daily safe-to-spend and reminders</p>
+              </div>
+              <button
+                onClick={() => setNotificationsOptIn(!profile.notificationsOptIn)}
+                aria-pressed={!!profile.notificationsOptIn}
+                aria-label="Toggle notifications"
+                className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
+                  profile.notificationsOptIn ? 'bg-brand-600' : 'bg-ink-200'
+                }`}
+              >
                 <span
-                  key={p}
-                  className="text-xs font-medium text-foreground bg-accent/50 border border-border rounded-full px-3 py-1.5"
-                >
-                  {p}
-                </span>
-              ))}
+                  className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                    profile.notificationsOptIn ? 'translate-x-5' : 'translate-x-0.5'
+                  }`}
+                />
+              </button>
             </div>
+            <button
+              onClick={() => window.history.back()}
+              className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-ink-50 transition"
+            >
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-100 text-brand-700">
+                <Sparkles size={16} />
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-ink-900">View notifications</p>
+                <p className="text-xs text-ink-500">See recent reminders and insights</p>
+              </div>
+              <ChevronRight size={16} className="text-ink-300 shrink-0" />
+            </button>
           </div>
-        )}
+        </div>
 
-        <Link
-          href="/Notifications"
-          className="cursor-pointer flex items-center gap-3 bg-card border border-border rounded-2xl px-4 py-3.5 mb-6 hover:bg-muted transition-colors"
-        >
-          <span className="w-9 h-9 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
-            <Sparkles size={16} className="text-primary" />
-          </span>
-          <div className="flex-1">
-            <p className="text-sm font-medium text-foreground">View notifications</p>
-            <p className="text-xs text-muted-foreground">See recent reminders and insights</p>
-          </div>
-          <ChevronRight size={16} className="text-muted-foreground" />
-        </Link>
-
-        <form onSubmit={handleSignOut}>
+        <form onSubmit={handleSignOut} className="pt-2">
           <button
             type="submit"
             disabled={signingOut}
-            className="cursor-pointer w-full flex items-center justify-center gap-2 rounded-full border border-border text-foreground font-semibold py-3.5 text-sm hover:bg-muted transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            className="btn-ghost w-full disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <LogOut size={16} />
             {signingOut ? 'Signing out…' : 'Sign out'}
           </button>
         </form>
-      </div>
+      </main>
 
       <BottomNav active="home" />
     </div>

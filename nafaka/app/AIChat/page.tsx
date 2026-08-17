@@ -1,17 +1,18 @@
 'use client'
 
-import React, { useState, useRef, useMemo } from 'react'
+import React, { useState, useRef, useMemo, useEffect } from 'react'
 import BottomNav from '@/components/BottomNav'
+import AppHeader from '@/components/AppHeader'
 import { useGoogleFont } from '@/lib/fonts'
 import { useFinance } from '@/lib/store'
-import { Sparkles, Send, ArrowLeft } from 'lucide-react'
-import Link from 'next/link'
+import { Sparkles, Send, User } from 'lucide-react'
 import { Bar, BarChart, CartesianGrid, XAxis, ResponsiveContainer } from 'recharts'
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart'
 import { storeTransactionsToBrain } from '@/lib/brain/adapters'
 import { answerQuestion, buildGreeting, type ChatContext, type ChatReply } from '@/lib/brain/chat'
 import { buildLlmContext } from '@/lib/brain/llm'
 import { stateLabel } from '@/lib/brain/describe'
+import { ConfidenceBar } from '@/components/proto/ui'
 import { track } from '@/lib/analytics'
 
 interface Message {
@@ -22,7 +23,7 @@ interface Message {
 }
 
 const chartConfig = {
-  amount: { label: 'Spent', color: 'var(--color-primary)' },
+  amount: { label: 'Spent', color: '#19bd80' },
 } satisfies ChartConfig
 
 const suggestions = [
@@ -34,7 +35,6 @@ const suggestions = [
 ]
 
 export default function AIChat() {
-  const display = useGoogleFont('Fraunces')
   const body = useGoogleFont('Manrope')
   const { profile, balance, safeToSpend, upcomingTotal, shortfall, behaviorModel, transactions, commitments, decisionLog, predictions, lastCoachingOutcome } = useFinance()
 
@@ -63,6 +63,11 @@ export default function AIChat() {
   const [pending, setPending] = useState(false)
   const busy = useRef(false)
   const nextId = useRef(4)
+  const endRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages, pending])
 
   const send = (text: string, source: 'chip' | 'typed' = 'typed') => {
     const question = text.trim()
@@ -106,51 +111,53 @@ export default function AIChat() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-32 flex flex-col" style={{ fontFamily: body }}>
-      <div className="max-w-sm mx-auto w-full px-6 pt-10 flex-1 flex flex-col">
-        <div className="flex items-center gap-3 mb-6">
-          <Link
-            href="/DailySnapshot"
-            className="w-9 h-9 rounded-full bg-card border border-border flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer transition-colors shrink-0"
-            aria-label="Back to home"
-          >
-            <ArrowLeft size={16} />
-          </Link>
-          <div>
-            <p className="text-xs font-semibold text-secondary uppercase tracking-wide mb-0.5">Layer 1 · Record</p>
-            <h1 style={{ fontFamily: display }} className="text-xl text-foreground leading-tight">
-              Ask your coach
-            </h1>
+    <div className="min-h-screen bg-background pb-28 flex flex-col" style={{ fontFamily: body }}>
+      <AppHeader />
+      <main className="mx-auto max-w-md w-full px-5 pt-4 flex-1 flex flex-col animate-fade-in">
+        {/* Header */}
+        <div className="flex items-center justify-between pb-3 border-b border-ink-100">
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-600 text-white">
+              <Sparkles size={18} />
+            </span>
+            <div>
+              <p className="font-display text-base font-semibold text-ink-900">Nafaka AI</p>
+              <p className="text-[11px] text-ink-500">
+                Behavioral coaching · {Math.round(behaviorModel.confidence * 100)}% confidence
+              </p>
+            </div>
           </div>
+          <ConfidenceBar value={Math.round(behaviorModel.confidence * 100)} />
         </div>
 
-        <div className="flex-1 flex flex-col gap-4 mb-4">
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto py-4 space-y-3">
           {messages.map((m) => (
-            <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              {m.role === 'ai' && (
-                <span className="w-7 h-7 rounded-full bg-primary/15 flex items-center justify-center text-primary shrink-0 mr-2 mt-0.5">
-                  <Sparkles size={13} />
-                </span>
-              )}
-              <div
-                className={`max-w-[78%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
-                  m.role === 'user'
-                    ? 'bg-primary text-primary-foreground rounded-br-sm'
-                    : 'bg-card border border-border text-foreground rounded-bl-sm'
+            <div key={m.id} className={`flex gap-2.5 ${m.role === 'user' ? 'flex-row-reverse' : ''}`}>
+              <span
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
+                  m.role === 'user' ? 'bg-ink-900 text-white' : 'bg-brand-600 text-white'
                 }`}
               >
-                {m.text}
+                {m.role === 'user' ? <User size={15} /> : <Sparkles size={15} />}
+              </span>
+              <div
+                className={`max-w-[78%] rounded-[1.25rem] px-3.5 py-2.5 text-sm leading-relaxed ${
+                  m.role === 'user' ? 'bg-ink-900 text-white' : 'bg-white border border-ink-100 text-ink-800 shadow-card'
+                }`}
+              >
+                <p>{m.text}</p>
                 {m.chart && (
                   <div className="mt-3 -mx-1">
                     <ChartContainer config={chartConfig} className="h-32 w-full">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={m.chart} margin={{ left: -20 }}>
-                          <CartesianGrid vertical={false} stroke="var(--color-border)" />
+                          <CartesianGrid vertical={false} stroke="#eceef2" />
                           <XAxis
                             dataKey="day"
                             tickLine={false}
                             axisLine={false}
-                            tick={{ fill: 'var(--color-muted-foreground)', fontSize: 10 }}
+                            tick={{ fill: '#65718a', fontSize: 10 }}
                           />
                           <ChartTooltip content={<ChartTooltipContent />} />
                           <Bar dataKey="amount" radius={[4, 4, 0, 0]} fill="var(--color-amount)" />
@@ -163,59 +170,69 @@ export default function AIChat() {
             </div>
           ))}
           {pending && (
-            <div className="flex justify-start">
-              <span className="w-7 h-7 rounded-full bg-primary/15 flex items-center justify-center text-primary shrink-0 mr-2 mt-0.5">
-                <Sparkles size={13} />
+            <div className="flex gap-2.5">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-600 text-white">
+                <Sparkles size={15} />
               </span>
-              <div className="max-w-[78%] rounded-2xl px-4 py-3 bg-card border border-border text-foreground rounded-bl-sm flex gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-pulse" />
-                <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-pulse [animation-delay:150ms]" />
-                <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-pulse [animation-delay:300ms]" />
+              <div className="bg-white border border-ink-100 rounded-[1.25rem] px-4 py-3 shadow-card">
+                <div className="flex gap-1">
+                  <span className="h-1.5 w-1.5 rounded-full bg-ink-300 animate-pulse-soft" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-ink-300 animate-pulse-soft" style={{ animationDelay: '0.2s' }} />
+                  <span className="h-1.5 w-1.5 rounded-full bg-ink-300 animate-pulse-soft" style={{ animationDelay: '0.4s' }} />
+                </div>
               </div>
             </div>
           )}
+          <div ref={endRef} />
         </div>
 
-        <div className="flex gap-2 overflow-x-auto pb-3 -mx-1 px-1 scrollbar-hide">
-          {suggestions.map((s) => (
-            <button
-              key={s}
-              onClick={() => send(s, 'chip')}
-              className="shrink-0 text-xs font-medium text-foreground bg-accent/50 border border-border rounded-full px-3.5 py-2 hover:bg-accent transition-colors cursor-pointer whitespace-nowrap"
-            >
-              {s}
-            </button>
-          ))}
-        </div>
+        {/* Suggestions */}
+        {messages.length <= 3 && (
+          <div className="pb-3">
+            <p className="text-xs font-medium text-ink-500 mb-2">Try asking</p>
+            <div className="flex flex-wrap gap-2">
+              {suggestions.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => send(s, 'chip')}
+                  className="rounded-full border border-ink-200 bg-white px-3 py-1.5 text-xs font-medium text-ink-700 hover:border-brand-400 hover:text-brand-700 transition cursor-pointer"
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
+        {/* Input */}
         <form
           onSubmit={(e) => {
             e.preventDefault()
             send(input)
           }}
-          className="flex items-center gap-2 bg-card border border-border rounded-2xl px-3 py-2 mt-1"
+          className="flex items-center gap-2 pt-2 border-t border-ink-100"
         >
           <input
+            className="flex-1 rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
+            placeholder="Ask about your money behavior..."
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask about your money..."
-            aria-label="Ask about your money"
-            className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none py-1.5"
+            aria-label="Ask about your money behavior"
           />
           <button
             type="submit"
-            className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:opacity-90 transition-opacity cursor-pointer shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={!input.trim() || pending}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-600 text-white transition hover:bg-brand-700 disabled:opacity-40 active:scale-95 cursor-pointer"
             aria-label="Send message"
-            disabled={pending}
           >
-            <Send size={15} />
+            <Send size={17} />
           </button>
         </form>
 
-        <p className="text-[11px] text-muted-foreground mt-3 text-center">
+        <p className="text-[11px] text-ink-400 mt-3 text-center">
           Currently {stateLabel(behaviorModel.state)} · {formatDistance(behaviorModel.stateDetail.runwayDays)} runway · {Math.round(behaviorModel.confidence * 100)}% confidence
         </p>
-      </div>
+      </main>
 
       <BottomNav active="chat" />
     </div>

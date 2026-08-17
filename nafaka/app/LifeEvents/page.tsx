@@ -1,11 +1,12 @@
 'use client'
 
 import React, { useState } from 'react'
-import Link from 'next/link'
 import BottomNav from '@/components/BottomNav'
+import AppHeader from '@/components/AppHeader'
 import { useGoogleFont } from '@/lib/fonts'
 import { useFinance } from '@/lib/store'
-import { ChevronLeft, Church, Users, Landmark, Home as HomeIcon, Plus, X, Check, CalendarClock, CheckCheck, XCircle } from 'lucide-react'
+import { Church, Users, Landmark, Home as HomeIcon, Plus, X, Check, CalendarClock, GraduationCap } from 'lucide-react'
+import { SectionTitle, StatPill } from '@/components/proto/ui'
 
 const iconMap: Record<string, typeof Church> = {
   cell: Users,
@@ -24,7 +25,6 @@ function pickIcon(label: string) {
 }
 
 export default function LifeEvents() {
-  const display = useGoogleFont('Fraunces')
   const body = useGoogleFont('Manrope')
   const { commitments, addCommitment, setCommitmentStatus } = useFinance()
 
@@ -45,101 +45,100 @@ export default function LifeEvents() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-32" style={{ fontFamily: body }}>
-      <div className="max-w-sm mx-auto px-6 pt-8">
-        <div className="flex items-center gap-3 mb-8">
-          <Link
-            href="/DailySnapshot"
-            className="cursor-pointer w-9 h-9 rounded-full flex items-center justify-center border border-border text-foreground hover:bg-muted transition-colors"
-            aria-label="Back"
-          >
-            <ChevronLeft size={18} />
-          </Link>
-          <h1 style={{ fontFamily: display }} className="text-lg text-foreground">
-            Upcoming commitments
-          </h1>
+    <div className="min-h-screen bg-background pb-28" style={{ fontFamily: body }}>
+      <AppHeader />
+      <main className="mx-auto max-w-md px-5 pt-4 space-y-6 animate-fade-up">
+        <div>
+          <h1 className="font-display text-2xl font-semibold text-ink-900">Life Events</h1>
+          <p className="text-sm text-ink-500 mt-1">
+            Nafaka factors real-life events into your behavior — so context is never mistaken for bad habits.
+          </p>
         </div>
 
-        <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
-          These are protected first when we calculate what&rsquo;s safe to spend each day. Mark what you&rsquo;ve
-          followed through on &mdash; it&rsquo;s how Nafaka learns your commitment reliability.
-        </p>
+        <div className="card p-4 bg-gradient-to-br from-brand-50 to-white">
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-600 text-white">
+              <GraduationCap size={18} />
+            </span>
+            <div>
+              <p className="text-sm font-semibold text-ink-900">Commitments come first</p>
+              <p className="text-xs text-ink-500">Protected before we calculate safe-to-spend</p>
+            </div>
+          </div>
+          <p className="text-xs text-ink-600 mt-3 leading-relaxed">
+            Mark what you&rsquo;ve followed through on — it&rsquo;s how Nafaka learns your commitment reliability.
+          </p>
+        </div>
 
-        {commitments.length > 0 ? (
-          <div className="space-y-2.5 mb-6">
-            {commitments.map(({ id, label: l, when: w, amount: a, status }) => {
-              const Icon = pickIcon(l)
-              const done = status === 'fulfilled'
-              const missed = status === 'missed'
-              return (
-                <div key={id} className="bg-card border border-border rounded-2xl overflow-hidden">
-                  <div className="flex items-center gap-3 px-4 py-3.5">
-                    <span className="w-9 h-9 rounded-full bg-muted flex items-center justify-center shrink-0">
-                      <Icon size={16} className={done ? 'text-secondary' : missed ? 'text-destructive' : 'text-secondary'} />
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium text-foreground truncate">{l}</p>
-                        {done && (
-                          <span className="text-[10px] font-semibold text-secondary bg-secondary/15 rounded-full px-2 py-0.5 shrink-0">
-                            Paid
-                          </span>
-                        )}
-                        {missed && (
-                          <span className="text-[10px] font-semibold text-destructive bg-destructive/10 rounded-full px-2 py-0.5 shrink-0">
-                            Missed
-                          </span>
-                        )}
+        <div>
+          <SectionTitle title="Upcoming events" hint={`${commitments.length} tracked`} />
+          {commitments.length > 0 ? (
+            <div className="space-y-3">
+              {commitments.map(({ id, label: l, when: w, amount: a, status }) => {
+                const Icon = pickIcon(l)
+                const done = status === 'fulfilled'
+                const missed = status === 'missed'
+                return (
+                  <div key={id} className="card p-4">
+                    <div className="flex items-start gap-3">
+                      <span
+                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                          done ? 'bg-brand-100 text-brand-700' : missed ? 'bg-accent-100 text-accent-700' : 'bg-ink-100 text-ink-600'
+                        }`}
+                      >
+                        <Icon size={18} />
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-sm font-semibold text-ink-900">{l}</p>
+                          {done && <StatPill tone="positive">Paid</StatPill>}
+                          {missed && <StatPill tone="watch">Missed</StatPill>}
+                          {!done && !missed && <StatPill tone="neutral">{status}</StatPill>}
+                        </div>
+                        <p className="text-xs text-ink-500 mt-1">{w}</p>
+                        <p className="text-sm font-bold text-ink-900 mt-1.5">UGX {a.toLocaleString()}</p>
                       </div>
-                      <p className="text-xs text-muted-foreground">{w}</p>
                     </div>
-                    <p className={`text-sm font-semibold ${missed ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
-                      UGX {a.toLocaleString()}
-                    </p>
+                    <div className="flex items-center gap-2 mt-3 pt-3 border-t border-ink-100">
+                      <button
+                        onClick={() => setCommitmentStatus(id, done ? 'upcoming' : 'fulfilled')}
+                        className={`flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-xs font-semibold transition ${
+                          done ? 'bg-brand-600 text-white' : 'border border-brand-200 text-brand-700 hover:bg-brand-50'
+                        }`}
+                      >
+                        <Check size={13} />
+                        {done ? 'Fulfilled' : 'Mark paid'}
+                      </button>
+                      <button
+                        onClick={() => setCommitmentStatus(id, missed ? 'upcoming' : 'missed')}
+                        className={`flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-xs font-semibold transition ${
+                          missed ? 'bg-accent-600 text-white' : 'border border-accent-200 text-accent-700 hover:bg-accent-50'
+                        }`}
+                      >
+                        <X size={13} />
+                        {missed ? 'Missed' : 'Mark missed'}
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 px-4 pb-3.5 pt-1">
-                    <button
-                      onClick={() => setCommitmentStatus(id, done ? 'upcoming' : 'fulfilled')}
-                      className={`cursor-pointer flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-semibold transition-colors ${
-                        done
-                          ? 'bg-secondary text-secondary-foreground'
-                          : 'border border-secondary/30 text-secondary hover:bg-secondary/10'
-                      }`}
-                    >
-                      <CheckCheck size={13} />
-                      {done ? 'Fulfilled' : 'Mark paid'}
-                    </button>
-                    <button
-                      onClick={() => setCommitmentStatus(id, missed ? 'upcoming' : 'missed')}
-                      className={`cursor-pointer flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-semibold transition-colors ${
-                        missed
-                          ? 'bg-destructive text-destructive-foreground'
-                          : 'border border-destructive/30 text-destructive hover:bg-destructive/10'
-                      }`}
-                    >
-                      <XCircle size={13} />
-                      {missed ? 'Missed' : 'Mark missed'}
-                    </button>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-12 border border-dashed border-border rounded-2xl mb-6">
-            <CalendarClock size={24} className="text-muted-foreground mb-3" />
-            <p className="text-sm text-muted-foreground">No commitments yet</p>
-            <p className="text-xs text-muted-foreground/60 mt-1">Add your first one below</p>
-          </div>
-        )}
+                )
+              })}
+            </div>
+          ) : (
+            <div className="card p-8 text-center">
+              <CalendarClock size={22} className="text-ink-400 mx-auto mb-3" />
+              <p className="text-sm text-ink-500">No commitments yet</p>
+              <p className="text-xs text-ink-400 mt-1">Add your first one below</p>
+            </div>
+          )}
+        </div>
 
         {showForm ? (
-          <div className="bg-card border border-border rounded-2xl p-5 mb-6">
+          <div className="card p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold text-foreground">New commitment</h2>
+              <h2 className="font-display text-base font-semibold text-ink-900">New commitment</h2>
               <button
                 onClick={() => setShowForm(false)}
-                className="cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
+                className="text-ink-500 hover:text-ink-800 transition"
                 aria-label="Close"
               >
                 <X size={16} />
@@ -151,14 +150,14 @@ export default function LifeEvents() {
                 value={label}
                 onChange={(e) => setLabel(e.target.value)}
                 placeholder="What is it? e.g. School fees"
-                className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm text-foreground outline-none focus:border-primary placeholder:text-muted-foreground transition-colors"
+                className="input"
               />
               <input
                 type="text"
                 value={when}
                 onChange={(e) => setWhen(e.target.value)}
                 placeholder="When? e.g. In 5 days"
-                className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm text-foreground outline-none focus:border-primary placeholder:text-muted-foreground transition-colors"
+                className="input"
               />
               <input
                 type="text"
@@ -166,16 +165,12 @@ export default function LifeEvents() {
                 value={amount}
                 onChange={(e) => setAmount(e.target.value.replace(/[^0-9]/g, ''))}
                 placeholder="Amount (UGX)"
-                className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm text-foreground outline-none focus:border-primary placeholder:text-muted-foreground transition-colors"
+                className="input"
               />
               <button
                 disabled={!canAdd}
                 onClick={handleAdd}
-                className={`cursor-pointer w-full flex items-center justify-center gap-2 rounded-full py-3.5 text-sm font-semibold transition-colors ${
-                  canAdd
-                    ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                    : 'bg-muted text-muted-foreground cursor-not-allowed'
-                }`}
+                className={`btn-primary w-full ${!canAdd ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 <Check size={15} />
                 Add commitment
@@ -183,15 +178,11 @@ export default function LifeEvents() {
             </div>
           </div>
         ) : (
-          <button
-            onClick={() => setShowForm(true)}
-            className="cursor-pointer w-full flex items-center justify-center gap-2 rounded-2xl border border-dashed border-border py-4 text-sm font-semibold text-primary hover:bg-muted transition-colors"
-          >
-            <Plus size={16} />
-            Add a commitment
+          <button onClick={() => setShowForm(true)} className="btn-ghost w-full">
+            <Plus size={16} /> Add a life event
           </button>
         )}
-      </div>
+      </main>
 
       <BottomNav active="home" />
     </div>

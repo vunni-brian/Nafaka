@@ -204,6 +204,7 @@ type OnboardingAnswers = {
 type FinancialContextValue = {
   profile: Profile
   setProfileName: (name: string) => void
+  setNotificationsOptIn: (enabled: boolean) => void
   /** true once the user finishes onboarding; gates demo data + route guards */
   isOnboarded: boolean
   /** false until localStorage/Supabase hydration has resolved */
@@ -428,6 +429,10 @@ export function FinancialProvider({ children }: { children: ReactNode }) {
     setProfile((p) => ({ ...p, name }))
   }, [])
 
+  const setNotificationsOptIn = useCallback((enabled: boolean) => {
+    setProfile((p) => ({ ...p, notificationsOptIn: enabled }))
+  }, [])
+
   const completeOnboarding = useCallback((answers: OnboardingAnswers) => {
     setProfile((p) => ({
       ...p,
@@ -516,7 +521,7 @@ export function FinancialProvider({ children }: { children: ReactNode }) {
   return (
     <FinancialContext.Provider
       value={{
-        profile, setProfileName, isOnboarded, isHydrated, completeOnboarding,
+        profile, setProfileName, setNotificationsOptIn, isOnboarded, isHydrated, completeOnboarding,
         transactions, addIncome, addExpense, deleteTransaction,
         balance, upcomingTotal, safeToSpend, shortfall,
       commitments, addCommitment, setCommitmentStatus,

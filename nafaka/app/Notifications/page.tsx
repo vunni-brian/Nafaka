@@ -1,18 +1,11 @@
 'use client'
 
 import React, { useMemo, useState } from 'react'
-import Link from 'next/link'
 import { useGoogleFont } from '@/lib/fonts'
 import { useFinance } from '@/lib/store'
 import { buildNotifications, type AppNotification } from '@/lib/notifications'
-import {
-  ChevronLeft,
-  Bell,
-  Church,
-  Sparkles,
-  CheckCheck,
-  Sun,
-} from 'lucide-react'
+import { Bell, Church, Sparkles, Sun, CheckCheck } from 'lucide-react'
+import AppHeader from '@/components/AppHeader'
 
 const iconMap: Record<AppNotification['kind'], typeof Bell> = {
   commitment: Church,
@@ -22,7 +15,6 @@ const iconMap: Record<AppNotification['kind'], typeof Bell> = {
 }
 
 export default function Notifications() {
-  const display = useGoogleFont('Fraunces')
   const body = useGoogleFont('Manrope')
   const { commitments, safeToSpend, behaviorModel, profile } = useFinance()
 
@@ -51,22 +43,19 @@ export default function Notifications() {
 
   return (
     <div className="min-h-screen bg-background pb-16" style={{ fontFamily: body }}>
-      <div className="max-w-sm mx-auto px-6 pt-8">
-        <div className="flex items-center gap-3 mb-8">
-          <Link
-            href="/DailySnapshot"
-            className="cursor-pointer w-9 h-9 rounded-full flex items-center justify-center border border-border text-foreground hover:bg-muted transition-colors"
-            aria-label="Back"
-          >
-            <ChevronLeft size={18} />
-          </Link>
-          <h1 style={{ fontFamily: display }} className="text-lg text-foreground flex-1">
-            Notifications
-          </h1>
+      <AppHeader />
+      <main className="mx-auto max-w-md px-5 pt-4 space-y-5 animate-fade-up">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="font-display text-2xl font-semibold text-ink-900">Notifications</h1>
+            <p className="text-xs text-ink-500 mt-1">
+              {unreadCount > 0 ? `${unreadCount} unread notification${unreadCount > 1 ? 's' : ''}` : 'You’re all caught up'}
+            </p>
+          </div>
           {unreadCount > 0 && (
             <button
               onClick={markAllRead}
-              className="cursor-pointer flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
+              className="flex items-center gap-1.5 text-xs font-semibold text-brand-700 hover:text-brand-800 transition"
             >
               <CheckCheck size={14} />
               Mark all read
@@ -74,13 +63,7 @@ export default function Notifications() {
           )}
         </div>
 
-        {unreadCount > 0 && (
-          <p className="text-xs text-muted-foreground mb-6">
-            {unreadCount} unread notification{unreadCount > 1 ? 's' : ''}
-          </p>
-        )}
-
-        <div className="space-y-2.5">
+        <div className="space-y-3">
           {notifications.map((n) => {
             const Icon = iconMap[n.kind] ?? Bell
             const isUnread = !readIds.has(n.id)
@@ -88,20 +71,26 @@ export default function Notifications() {
               <button
                 key={n.id}
                 onClick={() => markRead(n.id)}
-                className={`cursor-pointer w-full text-left flex items-start gap-3 rounded-2xl border px-4 py-4 transition-colors ${
-                  isUnread ? 'border-primary/30 bg-accent/40' : 'border-border bg-card hover:bg-muted'
+                className={`w-full text-left flex items-start gap-3 rounded-[1.25rem] p-4 transition shadow-sm ${
+                  isUnread
+                    ? 'bg-brand-600 text-white'
+                    : 'card hover:bg-ink-50'
                 }`}
               >
-                <span className="w-9 h-9 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
-                  <Icon size={16} className="text-primary" />
+                <span
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                    isUnread ? 'bg-white/15 text-white' : 'bg-brand-100 text-brand-700'
+                  }`}
+                >
+                  <Icon size={17} />
                 </span>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2">
-                    <p className="text-sm font-medium text-foreground">{n.title}</p>
-                    {isUnread && <span className="w-2 h-2 rounded-full bg-primary shrink-0 mt-1.5" />}
+                    <p className={`text-sm font-semibold ${isUnread ? 'text-white' : 'text-ink-900'}`}>{n.title}</p>
+                    {isUnread && <span className="w-2 h-2 rounded-full bg-white shrink-0 mt-1.5" />}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{n.detail}</p>
-                  <p className="text-[11px] text-muted-foreground/70 mt-2">Just now</p>
+                  <p className={`text-xs mt-1 leading-relaxed ${isUnread ? 'text-white/80' : 'text-ink-500'}`}>{n.detail}</p>
+                  <p className={`text-[11px] mt-2 ${isUnread ? 'text-white/60' : 'text-ink-400'}`}>Just now</p>
                 </div>
               </button>
             )
@@ -109,17 +98,17 @@ export default function Notifications() {
         </div>
 
         {notifications.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <span className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
-              <Bell size={20} className="text-muted-foreground" />
+          <div className="card p-10 text-center">
+            <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-ink-100 text-ink-400 mb-4">
+              <Bell size={20} />
             </span>
-            <p className="text-sm text-muted-foreground">No notifications yet.</p>
-            <p className="text-xs text-muted-foreground/70 mt-1 max-w-[24ch]">
+            <p className="text-sm text-ink-500">No notifications yet.</p>
+            <p className="text-xs text-ink-400 mt-1 max-w-[26ch] mx-auto leading-relaxed">
               Insights, commitment reminders, and your daily safe-to-spend will show up here as you use Nafaka.
             </p>
           </div>
         )}
-      </div>
+      </main>
     </div>
   )
 }
