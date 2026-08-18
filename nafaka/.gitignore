@@ -46,6 +46,7 @@ next-env.d.ts
 # argos visual tests
 /snapshots
 /.vitest-attachments/
+**/__screenshots__/
 
 # tauri
 /src-tauri/target/
