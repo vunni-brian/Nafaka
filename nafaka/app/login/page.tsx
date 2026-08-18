@@ -6,9 +6,17 @@ import Link from 'next/link'
 import { useGoogleFont } from '@/lib/fonts'
 import { createClient } from '@/utils/supabase/client'
 import { Capacitor } from '@capacitor/core'
-import { Browser } from '@capacitor/browser'
+import { GoogleSignIn } from '@capawesome/capacitor-google-sign-in'
 import { track } from '@/lib/analytics'
 import { Sparkles, Mail, Lock, LogIn, UserPlus, Smartphone, ShieldCheck } from 'lucide-react'
+
+const GOOGLE_WEB_CLIENT_ID = ''
+
+function generateNonce(): string {
+  const bytes = new Uint8Array(32)
+  crypto.getRandomValues(bytes)
+  return btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+}
 
 function GoogleIcon({ size = 17 }: { size?: number }) {
   return (
@@ -47,22 +55,30 @@ function LoginForm() {
 
     const supabase = createClient()
     if (Capacitor.isNativePlatform()) {
-      // Google blocks OAuth inside embedded WebViews, so native builds open
-      // the sign-in page in a Chrome Custom Tab and return via the deep link
-      // (NativeAuthBridge forwards the code to /auth/callback in-app).
-      const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `https://nafaka-git-chore-code-quality-tools-vunni-brians-projects.vercel.app/auth/callback?next=${encodeURIComponent(next)}`,
-          skipBrowserRedirect: true,
-        },
-      })
-      if (oauthError) {
-        setError(oauthError.message.replace(/^supabase/i, '').trim())
+      if (!GOOGLE_WEB_CLIENT_ID) {
+        setError('Google sign-in is being configured. Use email or phone for now.')
         setLoading(false)
         return
       }
-      if (data.url) await Browser.open({ url: data.url })
+      try {
+        await GoogleSignIn.initialize({ clientId: GOOGLE_WEB_CLIENT_ID })
+        const nonce = generateNonce()
+        const result = await GoogleSignIn.signIn({ nonce })
+        if (!result.idToken) throw new Error('Google did not return an ID token')
+        const { error } = await supabase.auth.signInWithIdToken({
+          provider: 'google',
+          token: result.idToken,
+          nonce,
+        })
+        if (error) throw error
+        track('signed_in', { method: 'google' })
+        router.push(next)
+        router.refresh()
+      } catch (err) {
+        setError(err instanceof Error ? err.message.replace(/^supabase/i, '').trim() : 'Google sign-in failed. Please try again.')
+      } finally {
+        setLoading(false)
+      }
       return
     }
     const { error } = await supabase.auth.signInWithOAuth({
