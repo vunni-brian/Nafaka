@@ -7,7 +7,7 @@ import BottomNav from '@/components/BottomNav'
 import AppHeader from '@/components/AppHeader'
 import { useGoogleFont } from '@/lib/fonts'
 import { useFinance } from '@/lib/store'
-import { MapPin, CalendarDays, Sparkles, ShieldCheck, Bell, Globe, Lock, ChevronRight, LogOut, Check } from 'lucide-react'
+import { CalendarDays, Sparkles, ShieldCheck, Bell, Globe, Lock, ChevronRight, LogOut, Check } from 'lucide-react'
 import { SectionTitle, ConfidenceBar } from '@/components/proto/ui'
 import { fmt } from '@/components/proto/format'
 import { tierLabel, tierCopy } from '@/lib/brain/describe'
@@ -99,9 +99,6 @@ export default function Profile() {
                   </button>
                 </div>
               )}
-              <p className="text-xs text-ink-500 flex items-center gap-1 mt-0.5">
-                <MapPin size={12} /> {profile.archetype || 'Kampala, Uganda'}
-              </p>
               <p className="text-xs text-ink-500 flex items-center gap-1 mt-0.5">
                 <CalendarDays size={12} /> Using Nafaka for {daysUsing} days
               </p>

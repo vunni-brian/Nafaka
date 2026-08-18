@@ -11,10 +11,6 @@ import {
   ShieldCheck,
   Heart,
   ArrowRight,
-  GraduationCap,
-  Briefcase,
-  Laptop,
-  Store,
   Landmark,
   PiggyBank,
   HandHeart,
@@ -46,13 +42,6 @@ const slides = [
   },
 ]
 
-const archetypes = [
-  { key: 'student', label: 'Student', icon: GraduationCap },
-  { key: 'employee', label: 'Employee', icon: Briefcase },
-  { key: 'freelancer', label: 'Freelancer', icon: Laptop },
-  { key: 'business', label: 'Business owner', icon: Store },
-] as const
-
 const priorities = [
   { key: 'survive', label: 'Survive the month', icon: ShieldCheck },
   { key: 'debt', label: 'Pay off debt', icon: Landmark },
@@ -72,7 +61,6 @@ export default function Onboarding() {
   const [phase, setPhase] = useState<'slides' | 'form'>('slides')
 
   const [step, setStep] = useState(0)
-  const [archetype, setArchetype] = useState<string | null>(null)
   const [selectedPriorities, setSelectedPriorities] = useState<string[]>([])
   const [balance, setBalance] = useState('')
   const [commitments, setCommitments] = useState({ cell: true, church: true, rent: false, debt: false })
@@ -89,7 +77,7 @@ export default function Onboarding() {
   }
 
   const canContinue = () => {
-    if (step === 0) return archetype !== null && consent
+    if (step === 0) return consent
     if (step === 1) return selectedPriorities.length > 0
     if (step === 2) return balance.trim().length > 0
     if (step === 4) return notifications !== null
@@ -98,14 +86,13 @@ export default function Onboarding() {
 
   const handleFinish = () => {
     track('onboarding_completed', {
-      archetype,
       priorities: selectedPriorities,
       startingBalance: Number(balance) || 0,
       notificationsOptIn: notifications === true,
     })
     track('consent_granted', { at: new Date().toISOString() })
     completeOnboarding({
-      archetype: archetype ?? '',
+      archetype: '',
       priorities: selectedPriorities,
       startingBalance: Number(balance) || 0,
       commitmentFlags: commitments,
@@ -206,26 +193,11 @@ export default function Onboarding() {
           {step === 0 && (
             <div>
               <h1 style={{ fontFamily: display }} className="font-display text-3xl font-semibold text-ink-900 mb-2">
-                Who are you?
+                Before we start
               </h1>
-              <p className="text-ink-500 text-sm mb-8">This helps us shape how we talk to you.</p>
-              <div className="grid grid-cols-2 gap-3">
-                {archetypes.map(({ key, label, icon: Icon }) => {
-                  const isActive = archetype === key
-                  return (
-                    <button
-                      key={key}
-                      onClick={() => setArchetype(key)}
-                      className={`cursor-pointer rounded-xl2 border p-5 flex flex-col items-start gap-3 text-left transition ${
-                        isActive ? 'border-brand-500 bg-brand-50 ring-1 ring-brand-500' : 'card hover:bg-ink-50'
-                      }`}
-                    >
-                      <Icon size={22} className={isActive ? 'text-brand-700' : 'text-ink-400'} />
-                      <span className={`text-sm font-semibold ${isActive ? 'text-brand-800' : 'text-ink-900'}`}>{label}</span>
-                    </button>
-                  )
-                })}
-              </div>
+              <p className="text-ink-500 text-sm mb-8">
+                Nafaka learns how you actually handle money, then coaches around it. A quick agreement first.
+              </p>
 
               <button
                 type="button"
