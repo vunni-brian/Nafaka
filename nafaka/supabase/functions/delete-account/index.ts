@@ -2,7 +2,10 @@ import { withSupabase } from 'npm:@supabase/server'
 
 export default {
   fetch: withSupabase({ auth: 'user' }, async (_req, ctx) => {
-    const userId = ctx.userClaims!.id
+    const userId = ctx.userClaims?.id
+    if (!userId) {
+      return Response.json({ error: 'unauthorized' }, { status: 401 })
+    }
 
     const { error: stateError } = await ctx.supabaseAdmin
       .from('finance_states')
