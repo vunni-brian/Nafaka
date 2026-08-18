@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { useGoogleFont } from '@/lib/fonts'
 import { createClient } from '@/utils/supabase/client'
 import { Capacitor } from '@capacitor/core'
+import { Browser } from '@capacitor/browser'
 import { track } from '@/lib/analytics'
 import { Sparkles, Mail, Lock, LogIn, UserPlus, Smartphone, ShieldCheck } from 'lucide-react'
 
@@ -45,12 +46,30 @@ function LoginForm() {
     setMessage(null)
 
     const supabase = createClient()
-    const redirectTo = Capacitor.isNativePlatform()
-      ? `app.nafaka://auth/callback?next=${encodeURIComponent(next)}`
-      : `${window.location.origin}/auth/callback?next=${next}`
+    if (Capacitor.isNativePlatform()) {
+      // Google blocks OAuth inside embedded WebViews, so native builds open
+      // the sign-in page in a Chrome Custom Tab and return via the deep link
+      // (NativeAuthBridge forwards the code to /auth/callback in-app).
+      const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `app.nafaka://auth/callback?next=${encodeURIComponent(next)}`,
+          skipBrowserRedirect: true,
+        },
+      })
+      if (oauthError) {
+        setError(oauthError.message.replace(/^supabase/i, '').trim())
+        setLoading(false)
+        return
+      }
+      if (data.url) await Browser.open({ url: data.url })
+      return
+    }
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo },
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?next=${next}`,
+      },
     })
     if (error) {
       setError(error.message.replace(/^supabase/i, '').trim())
