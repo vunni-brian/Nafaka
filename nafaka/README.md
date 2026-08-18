@@ -18,13 +18,13 @@ Phase 0 status: prototype validating the mental model — users understand and t
 
 | Route | Screen | Purpose |
 |-------|--------|---------|
-| `/` | Welcome | Hero + CTA |
-| `/Onboarding` | Onboarding | Archetype, priorities, balance, commitments |
+| `/` | Redirect | Routes to onboarding (new users) or dashboard |
+| `/Onboarding` | Onboarding | Consent, priorities, balance, commitments, notifications |
 | `/DailySnapshot` | Dashboard | Balance, safe-to-spend, recent activity, commitments |
 | `/AddIncome` | Add income | Record a deposit |
 | `/AddExpense` | Add expense | Record a spend |
-| `/Profile` | Profile | Name, archetype, priorities |
-| `/Notifications` | Notifications | Demo notification list |
+| `/Profile` | Profile | Name, priorities, notifications, sign out |
+| `/Notifications` | Notifications | Notification list |
 | `/FinancialPersonality` | Financial personality | Generated spending insights |
 | `/PatternDashboard` | Patterns | Income heatmap, spending by category, goals |
 | `/SupportNetwork` | Support network | Track who you lent to / borrowed from |
@@ -45,6 +45,16 @@ npm run build      # Production build
 ```
 
 Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` in `.env.local`.
+
+## Targets (browser, Android, desktop)
+
+One responsive app auto-detects the device: phones get the bottom tab bar and single-column screens; desktop (≥768px) gets a left sidebar and a wider, two-column dashboard. The same build feeds all three targets:
+
+- **Browser** — deploy the Next.js app as usual (Vercel)
+- **Android** — Capacitor wrapper (`android/`). Set `NAFAKA_APP_URL` (or edit `capacitor.config.ts`) to the deployed app URL, then `npm run android:sync` and open in Android Studio (`npm run android:open`)
+- **Desktop** — Tauri shell (`src-tauri/`). Set the window `url` in `src-tauri/tauri.conf.json`, then `npm run desktop:dev` / `npm run desktop:build` (requires Rust)
+
+Both native shells load the deployed web app (the app has server-side API routes and Supabase auth), so they only need a URL — no duplicate backend.
 
 ## Authentication
 
@@ -114,9 +124,8 @@ Navigation maps to these layers: **Today** (what should I know today?) · **Patt
 ## What's deferred
 
 - Bank connection / Open Banking
-- Real AI chat (LLM integration — chat is currently rule-based over the behavior model)
 - Push notifications (non-functional UI removed)
-- Biometric lock / Log out
+- Biometric lock
 - Server-side persistence beyond the prototype `finance_states` row
 
 Phase 0 goal: honest prototype that proves the mental model works.

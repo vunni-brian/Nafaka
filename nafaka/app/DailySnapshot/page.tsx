@@ -141,9 +141,9 @@ export default function DailySnapshot() {
 
   if (confidencePct < 40) {
     return (
-      <div className="min-h-screen bg-ink-50 pb-28" style={{ fontFamily: body }}>
+      <div className="min-h-screen bg-ink-50 pb-28 md:pb-10 md:pl-64" style={{ fontFamily: body }}>
         <AppHeader />
-        <main className="mx-auto max-w-md px-5 pt-4">
+        <main className="mx-auto w-full max-w-md px-5 pt-4 md:max-w-3xl md:px-8">
           <LearningState confidence={confidencePct} dataPoints={behaviorModel.dataPoints} onAdd={() => openAdd('expense')} />
         </main>
         <BottomNav active="home" />
@@ -153,9 +153,9 @@ export default function DailySnapshot() {
   }
 
   return (
-    <div className="min-h-screen bg-ink-50 pb-28" style={{ fontFamily: body }}>
+    <div className="min-h-screen bg-ink-50 pb-28 md:pb-10 md:pl-64" style={{ fontFamily: body }}>
       <AppHeader />
-      <main className="mx-auto max-w-md px-5 pt-4 space-y-6 animate-fade-up">
+      <main className="mx-auto w-full max-w-md px-5 pt-4 md:max-w-4xl md:px-8 space-y-6 animate-fade-up">
         {/* Hero balance card */}
         <div className="relative overflow-hidden rounded-xl2 bg-gradient-to-br from-ink-900 via-ink-900 to-brand-950 p-5 text-white shadow-card">
           <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-brand-500/20 blur-2xl" />
@@ -238,154 +238,161 @@ export default function DailySnapshot() {
           </div>
         </div>
 
-        {/* Learning status + buffer */}
-        <div className="card p-4">
-          <div className="flex items-center gap-4">
-            <Ring value={confidencePct} size={72} stroke={7} label={`${confidencePct}%`} sublabel="conf." />
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <Sparkles size={15} className="text-brand-600" />
-                <p className="text-sm font-semibold text-ink-900">{tierLabel(behaviorModel.confidenceTier)}</p>
+        {/* Desktop: two-column dashboard below the hero */}
+        <div className="md:grid md:grid-cols-2 md:gap-6 md:items-start">
+          <div className="space-y-6">
+            {/* Learning status + buffer */}
+            <div className="card p-4">
+              <div className="flex items-center gap-4">
+                <Ring value={confidencePct} size={72} stroke={7} label={`${confidencePct}%`} sublabel="conf." />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <Sparkles size={15} className="text-brand-600" />
+                    <p className="text-sm font-semibold text-ink-900">{tierLabel(behaviorModel.confidenceTier)}</p>
+                  </div>
+                  <p className="text-xs text-ink-500 mt-1">
+                    {behaviorModel.dataPoints} days of behavior observed. Full intelligence unlocks at 90%.
+                  </p>
+                  <div className="mt-2.5">
+                    <ConfidenceBar value={confidencePct} />
+                  </div>
+                </div>
               </div>
-              <p className="text-xs text-ink-500 mt-1">
-                {behaviorModel.dataPoints} days of behavior observed. Full intelligence unlocks at 90%.
-              </p>
-              <div className="mt-2.5">
-                <ConfidenceBar value={confidencePct} />
+            </div>
+
+            {/* Quick add */}
+            <div>
+              <SectionTitle title="Quick add" hint="Log income or expense to teach Nafaka" />
+              <QuickAdd onPick={openAdd} />
+            </div>
+
+            {/* Recent transactions */}
+            <div>
+              <SectionTitle title="Recent activity" hint="Last 7 days" />
+              <div className="card divide-y divide-ink-100">
+                {transactions.slice(0, 6).map((t) => (
+                  <div key={t.id} className="flex items-center gap-3 px-4 py-3">
+                    <span
+                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+                        t.type === 'income' ? 'bg-brand-100 text-brand-700' : 'bg-ink-100 text-ink-600'
+                      }`}
+                    >
+                      {t.type === 'income' ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-ink-900 truncate">{t.label}</p>
+                      <p className="text-xs text-ink-500 truncate">
+                        {t.note || '—'}
+                        {t.category === 'commitment' && <span className="ml-1.5 text-ink-400">· commitment</span>}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className={`text-sm font-semibold ${t.type === 'income' ? 'text-brand-700' : 'text-ink-900'}`}>
+                        {t.type === 'income' ? '+' : '−'}
+                        {fmtFull(t.amount)}
+                      </p>
+                      <p className="text-[10px] text-ink-400 mt-0.5">{t.time}</p>
+                    </div>
+                  </div>
+                ))}
+                {transactions.length === 0 && (
+                  <div className="px-4 py-6 text-center">
+                    <p className="text-xs text-ink-500">No transactions yet — add your first one above.</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Quick add */}
-        <div>
-          <SectionTitle title="Quick add" hint="Log income or expense to teach Nafaka" />
-          <QuickAdd onPick={openAdd} />
-        </div>
-
-        {/* Income trend chart */}
-        <div className="card p-4">
-          <SectionTitle
-            title="Income trend"
-            hint="Last 6 months"
-            action={
-              growth !== null ? (
-                <span className="pill bg-brand-100 text-brand-700">
-                  <TrendingUp size={12} /> {growth >= 0 ? '+' : ''}
-                  {growth}%
-                </span>
-              ) : undefined
-            }
-          />
-          <AreaChart data={monthTrend} labels={monthLabels} tone="brand" valuePrefix="UGX " />
-        </div>
-
-        {/* Spending chart - week12 only */}
-        {!isWeek4 && (
-          <div className="card p-4">
-            <SectionTitle title="Weekly spending" hint="Last 6 weeks" />
-            <AreaChart data={weeklySpend} labels={weekLabels} tone="accent" valuePrefix="UGX " />
-          </div>
-        )}
-
-        {/* Behavioral signals glance */}
-        <div>
-          <SectionTitle
-            title="Your financial behavior"
-            hint={isWeek4 ? 'Emerging signals - still learning' : 'Learned signals, updated daily'}
-            action={
-              <Link href="/FinancialPersonality" className="text-xs font-semibold text-brand-700 hover:text-brand-800">
-                View patterns
-              </Link>
-            }
-          />
-          <div className="grid grid-cols-2 gap-3">
-            {signalChips.map((c) => (
-              <SignalChip key={c.label} icon={c.icon} label={c.label} value={c.value} tone={c.tone} />
-            ))}
-          </div>
-        </div>
-
-        {/* Spend breakdown donut - week12 only */}
-        {!isWeek4 && spendBreakdown.length > 0 && (
-          <div className="card p-4">
-            <SectionTitle title="Where your money went" hint="This week" />
-            <div className="flex items-center gap-5">
-              <DonutSegments
-                segments={spendBreakdown}
-                size={130}
-                stroke={18}
-                centerLabel={fmt(weekTotals.spending)}
-                centerSub="total"
-              />
-              <div className="flex-1 space-y-2">
-                {spendBreakdown.map((s) => (
-                  <div key={s.label} className="flex items-center gap-2">
-                    <span className="h-2.5 w-2.5 rounded-full" style={{ background: s.color }} />
-                    <span className="text-xs text-ink-600 flex-1">{s.label}</span>
-                    <span className="text-xs font-semibold text-ink-900">{fmt(s.value)}</span>
+          <div className="space-y-6">
+            {/* Weekly insight teaser */}
+            {predictions.length > 0 && (
+              <div className="card overflow-hidden">
+                <Link href="/WeeklyReview" className="w-full block p-4 hover:bg-ink-50 transition">
+                  <div className="flex items-start gap-3">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-100 text-brand-700">
+                      <Sparkles size={18} />
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold text-ink-900">Weekly insight</p>
+                        <StatPill tone="positive">New</StatPill>
+                      </div>
+                      <p className="text-sm text-ink-600 mt-1 leading-relaxed">{todayInsight}</p>
+                      <span className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-brand-700">
+                        Read full review <ChevronRight size={14} />
+                      </span>
+                    </div>
                   </div>
+                </Link>
+              </div>
+            )}
+
+            {/* Income trend chart */}
+            <div className="card p-4">
+              <SectionTitle
+                title="Income trend"
+                hint="Last 6 months"
+                action={
+                  growth !== null ? (
+                    <span className="pill bg-brand-100 text-brand-700">
+                      <TrendingUp size={12} /> {growth >= 0 ? '+' : ''}
+                      {growth}%
+                    </span>
+                  ) : undefined
+                }
+              />
+              <AreaChart data={monthTrend} labels={monthLabels} tone="brand" valuePrefix="UGX " />
+            </div>
+
+            {/* Spending chart - week12 only */}
+            {!isWeek4 && (
+              <div className="card p-4">
+                <SectionTitle title="Weekly spending" hint="Last 6 weeks" />
+                <AreaChart data={weeklySpend} labels={weekLabels} tone="accent" valuePrefix="UGX " />
+              </div>
+            )}
+
+            {/* Behavioral signals glance */}
+            <div>
+              <SectionTitle
+                title="Your financial behavior"
+                hint={isWeek4 ? 'Emerging signals - still learning' : 'Learned signals, updated daily'}
+                action={
+                  <Link href="/FinancialPersonality" className="text-xs font-semibold text-brand-700 hover:text-brand-800">
+                    View patterns
+                  </Link>
+                }
+              />
+              <div className="grid grid-cols-2 gap-3">
+                {signalChips.map((c) => (
+                  <SignalChip key={c.label} icon={c.icon} label={c.label} value={c.value} tone={c.tone} />
                 ))}
               </div>
             </div>
-          </div>
-        )}
 
-        {/* Weekly insight teaser */}
-        {predictions.length > 0 && (
-          <div className="card overflow-hidden">
-            <Link href="/WeeklyReview" className="w-full block p-4 hover:bg-ink-50 transition">
-              <div className="flex items-start gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-100 text-brand-700">
-                  <Sparkles size={18} />
-                </span>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-semibold text-ink-900">Weekly insight</p>
-                    <StatPill tone="positive">New</StatPill>
+            {/* Spend breakdown donut - week12 only */}
+            {!isWeek4 && spendBreakdown.length > 0 && (
+              <div className="card p-4">
+                <SectionTitle title="Where your money went" hint="This week" />
+                <div className="flex items-center gap-5">
+                  <DonutSegments
+                    segments={spendBreakdown}
+                    size={130}
+                    stroke={18}
+                    centerLabel={fmt(weekTotals.spending)}
+                    centerSub="total"
+                  />
+                  <div className="flex-1 space-y-2">
+                    {spendBreakdown.map((s) => (
+                      <div key={s.label} className="flex items-center gap-2">
+                        <span className="h-2.5 w-2.5 rounded-full" style={{ background: s.color }} />
+                        <span className="text-xs text-ink-600 flex-1">{s.label}</span>
+                        <span className="text-xs font-semibold text-ink-900">{fmt(s.value)}</span>
+                      </div>
+                    ))}
                   </div>
-                  <p className="text-sm text-ink-600 mt-1 leading-relaxed">{todayInsight}</p>
-                  <span className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-brand-700">
-                    Read full review <ChevronRight size={14} />
-                  </span>
                 </div>
-              </div>
-            </Link>
-          </div>
-        )}
-
-        {/* Recent transactions */}
-        <div>
-          <SectionTitle title="Recent activity" hint="Last 7 days" />
-          <div className="card divide-y divide-ink-100">
-            {transactions.slice(0, 6).map((t) => (
-              <div key={t.id} className="flex items-center gap-3 px-4 py-3">
-                <span
-                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
-                    t.type === 'income' ? 'bg-brand-100 text-brand-700' : 'bg-ink-100 text-ink-600'
-                  }`}
-                >
-                  {t.type === 'income' ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-ink-900 truncate">{t.label}</p>
-                  <p className="text-xs text-ink-500 truncate">
-                    {t.note || '—'}
-                    {t.category === 'commitment' && <span className="ml-1.5 text-ink-400">· commitment</span>}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className={`text-sm font-semibold ${t.type === 'income' ? 'text-brand-700' : 'text-ink-900'}`}>
-                    {t.type === 'income' ? '+' : '−'}
-                    {fmtFull(t.amount)}
-                  </p>
-                  <p className="text-[10px] text-ink-400 mt-0.5">{t.time}</p>
-                </div>
-              </div>
-            ))}
-            {transactions.length === 0 && (
-              <div className="px-4 py-6 text-center">
-                <p className="text-xs text-ink-500">No transactions yet — add your first one above.</p>
               </div>
             )}
           </div>

@@ -42,3 +42,18 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# argos visual tests
+/snapshots
+/.vitest-attachments/
+
+# tauri
+/src-tauri/target/
+/src-tauri/gen/
+
+# capacitor
+android/app/build/
+android/.gradle/
+android/local.properties
+android/build/
+android/capacitor-cordova-android-plugins/

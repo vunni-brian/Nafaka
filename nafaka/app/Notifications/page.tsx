@@ -37,9 +37,9 @@ export default function Notifications() {
   }
 
   return (
-    <div className="min-h-screen bg-ink-50 pb-16" style={{ fontFamily: body }}>
+    <div className="min-h-screen bg-ink-50 pb-16 md:pb-10 md:pl-64" style={{ fontFamily: body }}>
       <AppHeader />
-      <main className="mx-auto max-w-md px-5 pt-4 space-y-6 animate-fade-up">
+      <main className="mx-auto w-full max-w-md px-5 pt-4 md:max-w-3xl md:px-8 space-y-6 animate-fade-up">
         <div>
           <h1 className="font-display text-2xl font-semibold text-ink-900">Notifications</h1>
           <p className="text-sm text-ink-500 mt-1">Coaching, reminders, and milestones from Nafaka.</p>

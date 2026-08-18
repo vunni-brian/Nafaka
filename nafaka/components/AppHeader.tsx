@@ -13,7 +13,7 @@ export default function AppHeader() {
   const isSecondary = !PRIMARY.some((p) => pathname?.startsWith(p)) && pathname !== '/'
 
   return (
-    <header className="sticky top-0 z-20 bg-ink-50/85 backdrop-blur-lg border-b border-ink-100">
+    <header className="sticky top-0 z-20 bg-ink-50/85 backdrop-blur-lg border-b border-ink-100 md:hidden">
       <div className="mx-auto max-w-md flex items-center justify-between px-5 h-14">
         <Link href="/DailySnapshot" className="flex items-center gap-2" aria-label="Nafaka home">
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-white shadow-soft">

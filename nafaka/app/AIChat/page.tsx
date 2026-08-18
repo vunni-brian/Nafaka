@@ -115,9 +115,9 @@ export default function AIChat() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-28 flex flex-col" style={{ fontFamily: body }}>
+    <div className="min-h-screen bg-background pb-28 md:pb-10 md:pl-64 flex flex-col" style={{ fontFamily: body }}>
       <AppHeader />
-      <main className="mx-auto max-w-md w-full px-5 pt-4 flex-1 flex flex-col animate-fade-in">
+      <main className="mx-auto w-full max-w-md px-5 pt-4 md:max-w-3xl md:px-8 flex-1 flex flex-col animate-fade-in">
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-ink-100">
           <div className="flex items-center gap-2.5">

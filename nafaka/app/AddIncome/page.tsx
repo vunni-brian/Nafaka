@@ -17,7 +17,7 @@ export default function AddIncome() {
   }
 
   return (
-    <div className="min-h-screen bg-ink-50" style={{ fontFamily: body }}>
+    <div className="min-h-screen bg-ink-50 md:pl-64" style={{ fontFamily: body }}>
       <AppHeader />
       <AddTransactionModal open={open} onClose={close} type="income" />
     </div>

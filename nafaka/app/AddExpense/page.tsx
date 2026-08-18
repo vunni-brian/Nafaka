@@ -17,7 +17,7 @@ export default function AddExpense() {
   }
 
   return (
-    <div className="min-h-screen bg-ink-50" style={{ fontFamily: body }}>
+    <div className="min-h-screen bg-ink-50 md:pl-64" style={{ fontFamily: body }}>
       <AppHeader />
       <AddTransactionModal open={open} onClose={close} type="expense" />
     </div>

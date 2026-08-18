@@ -95,8 +95,8 @@ export default function PatternDashboard() {
   const recurring = useMemo(() => commitments.filter((c) => c.status === 'upcoming').slice(0, 4), [commitments])
 
   return (
-    <div className="min-h-screen bg-background pb-32" style={{ fontFamily: body }}>
-      <div className="max-w-sm mx-auto px-6 pt-8">
+    <div className="min-h-screen bg-background pb-32 md:pb-10 md:pl-64" style={{ fontFamily: body }}>
+      <div className="max-w-sm mx-auto px-6 pt-8 md:max-w-3xl md:px-8">
         <div className="flex items-center gap-3 mb-8">
           <Link
             href="/FinancialPersonality"
