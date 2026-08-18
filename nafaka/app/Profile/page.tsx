@@ -47,8 +47,7 @@ export default function Profile() {
     setSigningOut(true)
     // The route handler clears cookies and redirects to /login
     const res = await fetch('/auth/signout', { method: 'POST' })
-    const redirectMap: Record<boolean, string> = { true: res.url, false: '/login' }
-    router.push(redirectMap[res.redirected])
+    router.push(res.redirected ? res.url : '/login')
     router.refresh()
   }
 
@@ -62,8 +61,7 @@ export default function Profile() {
       if (error) throw new Error(error.message || 'Deletion failed. Please try again.')
       window.localStorage.removeItem(LOCAL_STORAGE_KEY)
       const res = await fetch('/auth/signout', { method: 'POST' })
-      const redirectMap: Record<boolean, string> = { true: res.url, false: '/login' }
-      router.push(redirectMap[res.redirected])
+      router.push(res.redirected ? res.url : '/login')
       router.refresh()
     } catch (err) {
       setDeleteError(err instanceof Error ? err.message : 'Deletion failed. Please try again.')

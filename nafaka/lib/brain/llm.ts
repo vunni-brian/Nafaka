@@ -26,7 +26,7 @@ export function sanitizeLabel(label: string, maxLength = 24): string {
   let out = label.trim()
   for (const pattern of PERSONAL_PATTERNS) out = out.replace(pattern, '')
   out = out.replace(/\s{2,}/g, ' ').trim()
-  out = out.split(/\s+(?:for|via)\b/i)[0].trim()
+  out = out.split(/(?:^|\s+)(?:for|via)\b/i)[0].trim()
   if (out.length > maxLength) out = `${out.slice(0, maxLength - 1)}…`
   return out
 }

@@ -16,7 +16,7 @@ export default {
     }
 
     const { error: authError } = await ctx.supabaseAdmin.auth.admin.deleteUser(userId)
-    if (authError) {
+    if (authError && authError.status !== 404) {
       return Response.json({ error: 'auth_delete_failed' }, { status: 500 })
     }
 

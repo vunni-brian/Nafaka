@@ -135,6 +135,11 @@ describe('sanitizeLabel', () => {
     expect(sanitizeLabel('Money via Mobile Money')).toBe('Money')
   })
 
+  it('cuts labels that start with "for" or "via"', () => {
+    expect(sanitizeLabel('For Sarah Jones')).toBe('')
+    expect(sanitizeLabel('via Mobile Money')).toBe('')
+  })
+
   it('removes phone numbers', () => {
     expect(sanitizeLabel('Loan +256700123456 payback')).toBe('Loan payback')
   })
@@ -149,5 +154,56 @@ describe('sanitizeLabel', () => {
 
   it('trims whitespace', () => {
     expect(sanitizeLabel('  School fees  ')).toBe('School fees')
+  })
+})
+
+describe('privacy boundary: the LLM payload never contains personal identifiers', () => {
+  const EMAIL = 'sarah.jones@mail.com'
+  const PHONE = '+256700123456'
+  const NETWORK_PERSON = 'Sarah Jones'
+  const ID_NUMBER = '12345678901234567890'
+  const USER_NAME = 'joseph'
+
+  function piiCtx(): ChatContext {
+    const transactions: BrainTransaction[] = [
+      { id: 1, type: 'income', amount: 85000, source: `Freelance for ${NETWORK_PERSON}`, date: iso(-2) },
+      { id: 2, type: 'expense', amount: 6000, category: 'food', date: iso(-1) },
+      { id: 3, type: 'expense', amount: 20000, category: `School fees for ${EMAIL}`, date: iso(-3) },
+      { id: 4, type: 'expense', amount: 15000, category: `Loan ${PHONE} payback`, date: iso(-4) },
+      { id: 5, type: 'expense', amount: 9000, category: `Airtime for ${NETWORK_PERSON}`, date: iso(-5) },
+      { id: 6, type: 'expense', amount: 12000, category: `Receipt no. ${ID_NUMBER}`, date: iso(-6) },
+    ]
+    return ctx({ transactions })
+  }
+
+  const identifiers = [EMAIL, PHONE, NETWORK_PERSON, ID_NUMBER, USER_NAME]
+
+  it('keeps every identifier out of the serialized digest', () => {
+    const commitments: Commitment[] = [
+      { id: 1, label: `Cell for ${NETWORK_PERSON}`, when: 'Tomorrow', amount: 5000, status: 'upcoming' },
+      { id: 2, label: `Payment via ${PHONE}`, when: 'In 3 days', amount: 10000, status: 'upcoming' },
+    ]
+    const digest = buildLlmContext(piiCtx(), commitments)
+    const json = JSON.stringify(digest)
+    for (const id of identifiers) {
+      expect(json).not.toContain(id)
+    }
+  })
+
+  it('contains no keys that could carry identity', () => {
+    const digest = buildLlmContext(piiCtx(), []) as Record<string, unknown>
+    expect('name' in digest).toBe(false)
+    expect('email' in digest).toBe(false)
+    expect('notes' in digest).toBe(false)
+    expect('network' in digest).toBe(false)
+    expect('profile' in digest).toBe(false)
+  })
+
+  it('keeps sanitized labels out even with a single transaction', () => {
+    const transactions: BrainTransaction[] = [
+      { id: 1, type: 'expense', amount: 5000, category: `For ${NETWORK_PERSON}`, date: iso(-1) },
+    ]
+    const digest = buildLlmContext(ctx({ transactions }), [])
+    expect(JSON.stringify(digest)).not.toContain(NETWORK_PERSON)
   })
 })
