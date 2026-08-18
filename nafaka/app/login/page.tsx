@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useGoogleFont } from '@/lib/fonts'
 import { createClient } from '@/utils/supabase/client'
+import { Capacitor } from '@capacitor/core'
 import { track } from '@/lib/analytics'
 import { Sparkles, Mail, Lock, LogIn, UserPlus, Smartphone, ShieldCheck } from 'lucide-react'
 
@@ -44,11 +45,12 @@ function LoginForm() {
     setMessage(null)
 
     const supabase = createClient()
+    const redirectTo = Capacitor.isNativePlatform()
+      ? `app.nafaka://auth/callback?next=${encodeURIComponent(next)}`
+      : `${window.location.origin}/auth/callback?next=${next}`
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=${next}`,
-      },
+      options: { redirectTo },
     })
     if (error) {
       setError(error.message.replace(/^supabase/i, '').trim())
