@@ -53,7 +53,7 @@ function LoginForm() {
       const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `app.nafaka://auth/callback?next=${encodeURIComponent(next)}`,
+          redirectTo: `https://nafaka-git-chore-code-quality-tools-vunni-brians-projects.vercel.app/auth/callback?next=${encodeURIComponent(next)}`,
           skipBrowserRedirect: true,
         },
       })
