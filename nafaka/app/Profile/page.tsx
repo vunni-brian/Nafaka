@@ -7,11 +7,14 @@ import BottomNav from '@/components/BottomNav'
 import AppHeader from '@/components/AppHeader'
 import { useGoogleFont } from '@/lib/fonts'
 import { useFinance } from '@/lib/store'
-import { CalendarDays, Sparkles, ShieldCheck, Bell, Globe, Lock, ChevronRight, LogOut, Check } from 'lucide-react'
-import { SectionTitle, ConfidenceBar } from '@/components/proto/ui'
+import { CalendarDays, Sparkles, ShieldCheck, Bell, Globe, Lock, ChevronRight, LogOut, Check, Trash2 } from 'lucide-react'
+import { SectionTitle, ConfidenceBar, Modal } from '@/components/proto/ui'
 import { fmt } from '@/components/proto/format'
 import { tierLabel, tierCopy } from '@/lib/brain/describe'
 import { daysBetween, toISODate } from '@/lib/brain/stats'
+import { createClient } from '@/utils/supabase/client'
+
+const LOCAL_STORAGE_KEY = 'nafaka-finance-v1'
 
 export default function Profile() {
   const body = useGoogleFont('Manrope')
@@ -21,6 +24,9 @@ export default function Profile() {
   const [editing, setEditing] = useState(false)
   const [nameDraft, setNameDraft] = useState(profile.name)
   const [signingOut, setSigningOut] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const confidencePctValue = Math.round(behaviorModel.confidence * 100)
 
@@ -44,6 +50,25 @@ export default function Profile() {
     if (res.redirected) router.push(res.url)
     else router.push('/login')
     router.refresh()
+  }
+
+  const handleDeleteAccount = async () => {
+    if (deleting) return
+    setDeleting(true)
+    setDeleteError(null)
+    try {
+      const supabase = createClient()
+      const { error } = await supabase.functions.invoke('delete-account')
+      if (error) throw new Error(error.message || 'Deletion failed. Please try again.')
+      window.localStorage.removeItem(LOCAL_STORAGE_KEY)
+      const res = await fetch('/auth/signout', { method: 'POST' })
+      if (res.redirected) router.push(res.url)
+      else router.push('/login')
+      router.refresh()
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : 'Deletion failed. Please try again.')
+      setDeleting(false)
+    }
   }
 
   const unlocks = [
@@ -236,6 +261,22 @@ export default function Profile() {
           </div>
         </div>
 
+        {/* Danger zone */}
+        <div>
+          <SectionTitle title="Danger zone" />
+          <div className="card p-4">
+            <p className="text-xs text-ink-500 mb-3">
+              Permanently deletes your account, financial data and coaching history. This cannot be undone.
+            </p>
+            <button
+              onClick={() => { setDeleteOpen(true); setDeleteError(null) }}
+              className="w-full flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 py-3 text-sm font-semibold text-red-700 hover:bg-red-100 transition cursor-pointer"
+            >
+              <Trash2 size={16} /> Delete my account
+            </button>
+          </div>
+        </div>
+
         <form onSubmit={handleSignOut}>
           <button
             type="submit"
@@ -250,6 +291,43 @@ export default function Profile() {
       </main>
 
       <BottomNav active="home" />
+
+      <Modal
+        open={deleteOpen}
+        onClose={() => { if (!deleting) setDeleteOpen(false) }}
+        title="Delete your Nafaka account?"
+        footer={
+          <div className="flex gap-2">
+            <button
+              onClick={() => setDeleteOpen(false)}
+              disabled={deleting}
+              className="flex-1 rounded-xl border border-ink-200 py-3 text-sm font-semibold text-ink-700 hover:bg-ink-50 transition disabled:opacity-60 cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleDeleteAccount}
+              disabled={deleting}
+              className="flex-1 rounded-xl bg-red-600 py-3 text-sm font-semibold text-white hover:bg-red-700 transition disabled:opacity-60 cursor-pointer"
+            >
+              {deleting ? 'Deleting…' : 'Delete my account'}
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-ink-700 leading-relaxed">
+            This permanently deletes your Nafaka account and your financial data, including transactions,
+            commitments, goals, coaching history and financial insights.
+          </p>
+          <p className="text-sm font-semibold text-red-700">This can&apos;t be undone.</p>
+          {deleteError && (
+            <p role="alert" className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+              {deleteError}
+            </p>
+          )}
+        </div>
+      </Modal>
     </div>
   )
 }

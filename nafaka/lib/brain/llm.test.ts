@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { buildBehaviorModel } from './index'
-import { buildLlmContext } from './llm'
+import { buildLlmContext, sanitizeLabel } from './llm'
 import type { ChatContext } from './chat'
 import { buildDecisionLog } from './decisions'
 import { weeklyFocus } from './focus'
@@ -113,5 +113,41 @@ describe('buildLlmContext', () => {
     const digest = buildLlmContext(ctx(), [])
     expect(['STABLE', 'EMERGENCY', 'UNDER_PRESSURE', 'INCOME_UNCERTAIN', 'COMMITMENT_HEAVY', 'CASH_RICH', 'BUILDING_BUFFER', 'RECOVERING', 'UNKNOWN']).toContain(digest.situation)
     expect(Array.isArray(digest.predictions)).toBe(true)
+  })
+
+  it('never includes the user name', () => {
+    const digest = buildLlmContext(ctx(), [])
+    expect('name' in digest).toBe(false)
+    expect(JSON.stringify(digest)).not.toContain('joseph')
+  })
+})
+
+describe('sanitizeLabel', () => {
+  it('keeps plain labels intact', () => {
+    expect(sanitizeLabel('Cell meeting')).toBe('Cell meeting')
+  })
+
+  it('strips detail after "for"', () => {
+    expect(sanitizeLabel("Rent for Sarah's apartment")).toBe('Rent')
+  })
+
+  it('strips detail after "via"', () => {
+    expect(sanitizeLabel('Money via Mobile Money')).toBe('Money')
+  })
+
+  it('removes phone numbers', () => {
+    expect(sanitizeLabel('Loan +256700123456 payback')).toBe('Loan payback')
+  })
+
+  it('removes email addresses', () => {
+    expect(sanitizeLabel('School fees for Sarah.Jones@mail.com')).toBe('School fees')
+  })
+
+  it('truncates long labels', () => {
+    expect(sanitizeLabel('abcdefghijklmnopqrstuvwxyz0123456789')).toHaveLength(24)
+  })
+
+  it('trims whitespace', () => {
+    expect(sanitizeLabel('  School fees  ')).toBe('School fees')
   })
 })

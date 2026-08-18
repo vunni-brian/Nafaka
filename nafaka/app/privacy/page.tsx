@@ -22,7 +22,7 @@ const sections = [
   },
   {
     title: '5. Storage and security',
-    body: 'Your data is stored securely with our hosting providers and protected by reasonable technical measures, including encryption in transit, row-level access controls, and passwords or one-time codes for authentication. We retain your data for as long as your account is active. If you request deletion, we delete or anonymise your personal data.',
+    body: 'Your data is stored securely with our hosting providers and protected by reasonable technical measures, including encryption in transit, row-level access controls, and passwords or one-time codes for authentication. We retain your data for as long as your account is active. You can delete your account at any time in the app (Profile → Delete my account), which permanently removes your account, your financial data, and your coaching history from our systems. Data remaining in backups is deleted or anonymised on the schedule our hosting providers apply.',
   },
   {
     title: '6. Sharing',
@@ -30,7 +30,7 @@ const sections = [
   },
   {
     title: '7. Your rights',
-    body: 'Under the Data Protection and Privacy Act, 2019 you have the right to access, correct, and delete your personal data, to object to or restrict its processing, and to lodge a complaint with the Personal Data Protection Office (PDPO). You can exercise these rights by contacting us — we will respond within the timeframes required by law.',
+    body: 'Under the Data Protection and Privacy Act, 2019 you have the right to access, correct, and delete your personal data, to object to or restrict its processing, and to lodge a complaint with the Personal Data Protection Office (PDPO). You can delete your account directly in the app (Profile → Delete my account), or exercise any other right by contacting us — we will respond within the timeframes required by law.',
   },
   {
     title: '8. Children',
