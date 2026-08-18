@@ -16,10 +16,26 @@ const SIGNALS = [
 
 const SEVERITY_RANK = { action: 2, watch: 1, info: 0 } as const
 
+const PERSONAL_PATTERNS = [
+  /\+?[0-9]{7,}\b/g,
+  /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi,
+] as const
+
+/** Strip personal identifiers from a user-typed label before it leaves the app. */
+export function sanitizeLabel(label: string, maxLength = 24): string {
+  let out = label.trim()
+  for (const pattern of PERSONAL_PATTERNS) out = out.replace(pattern, '')
+  out = out.replace(/\s{2,}/g, ' ').trim()
+  out = out.split(/\s+(?:for|via)\b/i)[0].trim()
+  if (out.length > maxLength) out = `${out.slice(0, maxLength - 1)}…`
+  return out
+}
+
 /**
  * Compact, LLM-ready digest of the user's financial state. Only derived
  * metrics and short summaries — never raw localStorage dumps — so the
- * prompt stays small, cheap and private.
+ * prompt stays small, cheap and private. No identifying fields (name,
+ * email, phone, notes) are included.
  */
 export function buildLlmContext(ctx: ChatContext, commitments: Commitment[]) {
   const signals: Record<string, { value: number; confidence: number; sampleSize: number }> = {}
@@ -33,12 +49,12 @@ export function buildLlmContext(ctx: ChatContext, commitments: Commitment[]) {
   const recentTransactions = [...ctx.transactions]
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(-8)
-    .map((t) => ({ kind: t.type, amount: Math.round(t.amount), label: t.source ?? t.category, date: t.date }))
+    .map((t) => ({ kind: t.type, amount: Math.round(t.amount), label: sanitizeLabel(t.source ?? t.category ?? ''), date: t.date }))
 
   const upcomingCommitments = commitments
     .filter((c) => c.status === 'upcoming')
     .slice(0, 5)
-    .map((c) => ({ label: c.label, amount: Math.round(c.amount), when: c.when }))
+    .map((c) => ({ label: sanitizeLabel(c.label), amount: Math.round(c.amount), when: c.when }))
 
   const insights = [...ctx.model.insights]
     .sort((a, b) => SEVERITY_RANK[b.severity] - SEVERITY_RANK[a.severity])
@@ -75,7 +91,6 @@ export function buildLlmContext(ctx: ChatContext, commitments: Commitment[]) {
     : null
 
   return {
-    name: ctx.name,
     balance: Math.round(ctx.balance),
     safeToSpend: Math.round(ctx.safeToSpend),
     upcomingTotal: Math.round(ctx.upcomingTotal),
