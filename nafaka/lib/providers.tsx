@@ -12,18 +12,13 @@ function OnboardingGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter()
 
   const isPublic =
-    pathname === '/' || pathname === '/login' || pathname === '/Onboarding' || pathname === '/privacy' || pathname === '/terms' || pathname.startsWith('/auth/')
+    pathname === '/' || pathname === '/login' || pathname === '/Onboarding' || pathname === '/privacy' || pathname === '/terms' || pathname === '/delete-account' || pathname.startsWith('/auth/')
 
   useEffect(() => {
-    if (isHydrated && !isOnboarded && !isPublic) {
-      router.replace('/Onboarding')
-    }
+    if (isHydrated && !isOnboarded && !isPublic) router.replace('/Onboarding')
   }, [isHydrated, isOnboarded, isPublic, router])
 
-  if (!isHydrated) {
-    return <>{isPublic ? children : null}</>
-  }
-
+  if (!isHydrated) return <>{isPublic ? children : null}</>
   return <>{children}</>
 }
 
