@@ -30,7 +30,32 @@ function stripMarkdown(text: string): string {
     .trim()
 }
 
+const RATE_WINDOW_MS = 60_000
+const RATE_MAX = 20
+const rateHits = new Map<string, number[]>()
+
+function rateLimited(key: string): boolean {
+  const now = Date.now()
+  const recent = (rateHits.get(key) ?? []).filter((t) => now - t < RATE_WINDOW_MS)
+  if (recent.length >= RATE_MAX) {
+    rateHits.set(key, recent)
+    return true
+  }
+  recent.push(now)
+  rateHits.set(key, recent)
+  return false
+}
+
+function clientIp(request: NextRequest): string {
+  const fwd = request.headers.get('x-forwarded-for')
+  return fwd ? fwd.split(',')[0].trim() : request.headers.get('x-real-ip') ?? 'unknown'
+}
+
 export async function POST(request: NextRequest): Promise<NextResponse> {
+  if (rateLimited(clientIp(request))) {
+    return NextResponse.json({ error: 'rate_limited' }, { status: 429 })
+  }
+
   if (!GEMINI_API_KEY) {
     return NextResponse.json({ error: 'no_key' }, { status: 503 })
   }

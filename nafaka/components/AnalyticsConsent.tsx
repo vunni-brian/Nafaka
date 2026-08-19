@@ -1,17 +1,25 @@
 'use client'
 
 import { useEffect, useSyncExternalStore } from 'react'
+import { usePathname } from 'next/navigation'
 import { initAnalytics } from '@/lib/analytics'
 
 const CONSENT_KEY = 'nafaka-analytics-consent-v1'
 const emptySubscribe = () => () => {}
 
 export default function AnalyticsConsent() {
+  const pathname = usePathname()
   const visible = useSyncExternalStore(
     emptySubscribe,
     () => window.localStorage.getItem(CONSENT_KEY) === null,
     () => false,
   )
+
+  // The onboarding flow and the login/auth pages handle consent in-flow; a
+  // floating banner there would overlap primary actions (e.g. the onboarding
+  // Continue button) and offer no value.
+  const suppressed =
+    pathname === '/Onboarding' || pathname === '/login' || pathname.startsWith('/auth/')
 
   useEffect(() => {
     if (window.localStorage.getItem(CONSENT_KEY) === 'accepted') initAnalytics()
@@ -22,7 +30,7 @@ export default function AnalyticsConsent() {
     if (accepted) initAnalytics()
   }
 
-  if (!visible) return null
+  if (!visible || suppressed) return null
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-[100] border-t border-ink-200 bg-white px-4 py-3 shadow-lg md:bottom-4 md:left-4 md:right-auto md:max-w-md md:rounded-2xl md:border">

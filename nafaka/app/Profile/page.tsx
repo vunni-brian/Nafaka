@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import BottomNav from '@/components/BottomNav'
 import AppHeader from '@/components/AppHeader'
 import { useGoogleFont } from '@/lib/fonts'
-import { useFinance } from '@/lib/store'
+import { useFinance, clearLocalFinanceState } from '@/lib/store'
 import { CalendarDays, Sparkles, ShieldCheck, Bell, Globe, Lock, ChevronRight, LogOut, Check, Trash2 } from 'lucide-react'
 import { SectionTitle, ConfidenceBar, Modal } from '@/components/proto/ui'
 import { fmt } from '@/components/proto/format'
@@ -14,8 +14,6 @@ import { tierLabel, tierCopy } from '@/lib/brain/describe'
 import { daysBetween, toISODate } from '@/lib/brain/stats'
 import { createClient } from '@/utils/supabase/client'
 import { SUPPORT_EMAIL } from '@/lib/site'
-
-const LOCAL_STORAGE_KEY = 'nafaka-finance-v1'
 
 export default function Profile() {
   const body = useGoogleFont('Manrope')
@@ -60,7 +58,7 @@ export default function Profile() {
       const supabase = createClient()
       const { error } = await supabase.functions.invoke('delete-account')
       if (error) throw new Error(error.message || 'Deletion failed. Please try again.')
-      window.localStorage.removeItem(LOCAL_STORAGE_KEY)
+      clearLocalFinanceState()
       const res = await fetch('/auth/signout', { method: 'POST' })
       router.push(res.redirected ? res.url : '/login')
       router.refresh()

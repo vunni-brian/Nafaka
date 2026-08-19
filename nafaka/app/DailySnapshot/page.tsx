@@ -163,9 +163,9 @@ export default function DailySnapshot() {
           <div className="relative">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-medium text-white/60">
+                <h1 className="text-xs font-medium text-white/60">
                   {now.getHours() < 12 ? 'Good morning' : now.getHours() < 18 ? 'Good afternoon' : 'Good evening'}, {profile.name || 'there'}
-                </p>
+                </h1>
                 <p className="text-xs text-white/40 mt-0.5">{tierLabel(behaviorModel.confidenceTier)}</p>
               </div>
               <Link

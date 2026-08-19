@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useGoogleFont } from '@/lib/fonts'
 import { createClient } from '@/utils/supabase/client'
+import { clearLocalFinanceState } from '@/lib/store'
 import { SUPPORT_EMAIL } from '@/lib/site'
 import { ChevronLeft, ShieldCheck, Trash2 } from 'lucide-react'
 
@@ -32,7 +33,7 @@ export default function DeleteAccountPage() {
       const supabase = createClient()
       const { error } = await supabase.functions.invoke('delete-account')
       if (error) throw error
-      localStorage.removeItem('nafaka-finance-v1')
+      clearLocalFinanceState()
       await supabase.auth.signOut()
       setDone(true)
     } catch {

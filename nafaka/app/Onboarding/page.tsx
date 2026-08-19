@@ -198,14 +198,15 @@ export default function Onboarding() {
                 Nafaka learns how you actually handle money, then coaches around it. A quick agreement first.
               </p>
 
-              <button
-                type="button"
-                role="checkbox"
-                aria-checked={consent}
-                onClick={() => setConsent((c) => !c)}
-                className="cursor-pointer w-full flex items-start gap-3 rounded-xl2 border border-ink-200 bg-white px-4 py-3.5 mt-6 text-left transition hover:bg-ink-50"
-              >
+              <label className="cursor-pointer w-full flex items-start gap-3 rounded-xl2 border border-ink-200 bg-white px-4 py-3.5 mt-6 text-left transition hover:bg-ink-50">
+                <input
+                  type="checkbox"
+                  checked={consent}
+                  onChange={(e) => setConsent(e.target.checked)}
+                  className="sr-only"
+                />
                 <span
+                  aria-hidden
                   className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 mt-0.5 transition ${
                     consent ? 'bg-brand-600 border-brand-600' : 'border-ink-300'
                   }`}
@@ -214,15 +215,15 @@ export default function Onboarding() {
                 </span>
                 <span className="text-xs text-ink-600 leading-relaxed">
                   I agree to the{' '}
-                  <Link href="/privacy" onClick={(e) => e.stopPropagation()} className="text-brand-700 hover:underline">
+                  <Link href="/privacy" className="text-brand-700 hover:underline">
                     Privacy Policy
                   </Link>{' '}
                   and{' '}
-                  <Link href="/terms" onClick={(e) => e.stopPropagation()} className="text-brand-700 hover:underline">
+                  <Link href="/terms" className="text-brand-700 hover:underline">
                     Terms of Service
                   </Link>
                 </span>
-              </button>
+              </label>
             </div>
           )}
 

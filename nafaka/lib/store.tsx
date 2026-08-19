@@ -104,8 +104,26 @@ let nextTxId = 100
 let nextCommitmentId = 50
 let nextGoalId = 20
 let nextNetworkId = 30
-const STORAGE_KEY = 'nafaka-finance-v1'
+const LEGACY_STORAGE_KEY = 'nafaka-finance-v1'
 const SCHEMA_VERSION = 1
+
+/** Storage keys are scoped per user so a different person on the same device
+ * never hydrates someone else's financial state. Guests (signed out) use the
+ * legacy shared key. */
+const storageKeyFor = (userId: string | null): string =>
+  userId ? `nafaka-state:${userId}` : LEGACY_STORAGE_KEY
+
+/** Removes every locally persisted financial state (all users + legacy key).
+ * Used on account deletion so nothing sensitive survives on the device. */
+export function clearLocalFinanceState(): void {
+  if (typeof window === 'undefined') return
+  const keys: string[] = []
+  for (let i = 0; i < window.localStorage.length; i++) {
+    const k = window.localStorage.key(i)
+    if (k && (k.startsWith('nafaka-state:') || k === LEGACY_STORAGE_KEY)) keys.push(k)
+  }
+  for (const k of keys) window.localStorage.removeItem(k)
+}
 
 type PersistedFinance = Pick<
   FinancialContextValue,
@@ -124,10 +142,10 @@ function timeNow(): string {
   return `Today, ${h}:${m} ${ampm}`
 }
 
-function readPersistedFinance(): Partial<PersistedFinance> {
+function readPersistedFinance(key: string): Partial<PersistedFinance> {
   if (typeof window === 'undefined') return {}
   try {
-    const stored = window.localStorage.getItem(STORAGE_KEY)
+    const stored = window.localStorage.getItem(key)
     return stored ? JSON.parse(stored) : {}
   } catch {
     return {}
@@ -265,39 +283,70 @@ export function FinancialProvider({ children }: { children: ReactNode }) {
   const [stateMemory, setStateMemory] = useState<Memory<FinancialState> | null>(null)
   const [situationMemory, setSituationMemory] = useState<Memory<Situation> | null>(null)
   const lastSavedRef = useRef('')
+  const appliedForRef = useRef<string | null | undefined>(undefined)
+  const loadSeqRef = useRef(0)
+
+  const applySource = React.useCallback((source: Partial<PersistedFinance>) => {
+    if (source.profile) setProfile({ ...DEFAULT_PROFILE, ...source.profile })
+    if (source.transactions) setTransactions(source.transactions)
+    if (source.commitments) setCommitments(source.commitments)
+    if (source.goals) setGoals(source.goals)
+    if (source.network) setNetwork(source.network)
+    if (source.coachingLog) setCoachingLog(source.coachingLog)
+    if (source.stateMemory) setStateMemory(source.stateMemory)
+    if (source.situationMemory) setSituationMemory(source.situationMemory)
+  }, [])
 
   React.useEffect(() => {
     let cancelled = false
-    let remoteState: PersistedFinance | null = null
     const supabase = createClient()
 
-    ;(async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (cancelled) return
+    const loadFor = async (user: User | null) => {
+      const key = user?.id ?? null
+      if (appliedForRef.current === key) return
+      const seq = ++loadSeqRef.current
+      let remoteState: PersistedFinance | null = null
       if (user) {
         const { data } = await supabase.from('finance_states').select('state, schema_version').eq('user_id', user.id).maybeSingle()
         if (data?.state && (data.schema_version ?? 1) === SCHEMA_VERSION) remoteState = data.state as PersistedFinance
       }
-      queueMicrotask(() => {
-        if (cancelled) return
-        setUser(user)
-        const source = remoteState ?? readPersistedFinance()
-        if (source.profile) setProfile({ ...DEFAULT_PROFILE, ...source.profile })
-        if (source.transactions) setTransactions(source.transactions)
-        if (source.commitments) setCommitments(source.commitments)
-        if (source.goals) setGoals(source.goals)
-        if (source.network) setNetwork(source.network)
-        if (source.coachingLog) setCoachingLog(source.coachingLog)
-        if (source.stateMemory) setStateMemory(source.stateMemory)
-        if (source.situationMemory) setSituationMemory(source.situationMemory)
-        setIsHydrated(true)
-      })
+      if (cancelled || seq !== loadSeqRef.current) return
+      const localKey = storageKeyFor(key)
+      if (user && typeof window !== 'undefined') {
+        const legacy = window.localStorage.getItem(LEGACY_STORAGE_KEY)
+        const scoped = window.localStorage.getItem(localKey)
+        if (legacy && !scoped) {
+          window.localStorage.setItem(localKey, legacy)
+          window.localStorage.removeItem(LEGACY_STORAGE_KEY)
+        }
+      }
+      const source = remoteState ?? readPersistedFinance(localKey)
+      if (cancelled || seq !== loadSeqRef.current) return
+      applySource(source)
+      setUser(user)
+      appliedForRef.current = key
+      setIsHydrated(true)
+    }
+
+    ;(async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!cancelled) await loadFor(user)
     })()
+
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') {
+        loadFor(session?.user ?? null)
+      } else if (event === 'SIGNED_OUT') {
+        appliedForRef.current = undefined
+        loadFor(null)
+      }
+    })
 
     return () => {
       cancelled = true
+      sub.subscription.unsubscribe()
     }
-  }, [])
+  }, [applySource])
 
   React.useEffect(() => {
     if (!isHydrated) return
@@ -318,7 +367,7 @@ export function FinancialProvider({ children }: { children: ReactNode }) {
     const serialized = JSON.stringify(state)
     if (serialized === lastSavedRef.current) return
     lastSavedRef.current = serialized
-    window.localStorage.setItem(STORAGE_KEY, serialized)
+    window.localStorage.setItem(storageKeyFor(user?.id ?? null), serialized)
     if (user) {
       createClient()
         .from('finance_states')

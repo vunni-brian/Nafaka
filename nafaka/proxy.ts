@@ -15,6 +15,9 @@ export async function proxy(request: NextRequest) {
   }
 
   if (!user && !isPublic) {
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+    }
     const url = new URL('/login', request.url)
     url.searchParams.set('next', pathname)
     return redirectWithCookies(url)
