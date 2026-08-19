@@ -1,11 +1,32 @@
 version = 1
 
+exclude_patterns = [
+  "**/node_modules/**",
+  "**/dist/**",
+  "**/build/**",
+  "**/coverage/**",
+  "**/.next/**",
+  "**/android/**",
+  "**/src-tauri/**",
+  "**/supabase/functions/**",
+  "**/*.test.*",
+  "**/*.spec.*",
+  "**/__tests__/**",
+  "**/*.min.js",
+  "**/*.min.css",
+]
+
 [[analyzers]]
 name = "javascript"
 enabled = true
 
 [analyzers.meta]
 environment = ["nodejs", "browser"]
+plugins = ["react"]
+dialect = "typescript"
+module_system = "es-modules"
+dependency_file_paths = ["nafaka/package.json", "nafaka/tsconfig.json"]
+cyclomatic_complexity_threshold = "high"
 
 [[analyzers]]
 name = "secrets"
@@ -22,18 +43,4 @@ exclude_patterns = [
   "**/.next/**",
   "**/*.min.js",
   "**/*.min.css",
-]
-
-exclude_patterns = [
-  "**/node_modules/**",
-  "**/dist/**",
-  "**/build/**",
-  "**/coverage/**",
-  "**/.next/**",
-  "**/android/**",
-  "**/src-tauri/**",
-  "**/supabase/functions/**",
-  "**/*.test.*",
-  "**/*.spec.*",
-  "**/__tests__/**",
 ]
