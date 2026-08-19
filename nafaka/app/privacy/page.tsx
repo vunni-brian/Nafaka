@@ -1,6 +1,7 @@
 import React from 'react'
 import Link from 'next/link'
 import { useGoogleFont } from '@/lib/fonts'
+import { SUPPORT_EMAIL } from '@/lib/site'
 import { ChevronLeft } from 'lucide-react'
 
 const sections = [
@@ -10,27 +11,27 @@ const sections = [
   },
   {
     title: '2. What we collect',
-    body: 'Account data: the name, email address, and/or phone number you provide when signing in. Financial data: amounts, categories, notes, commitments, and other information you enter yourself, plus your onboarding answers (income type, priorities, and notification preferences). Usage data: pages visited and features used, collected through analytics. We do not collect bank logins, passwords, or access to any financial account.',
+    body: 'Account data: the name, email address, and/or phone number you provide when signing in or signing up. Financial data: amounts, categories, notes, commitments, and other information you enter yourself, plus your onboarding answers (income type, priorities, and notification preferences). Chat data: the questions you ask Nafaka AI and the responses it gives you. Usage data: pages visited and features used, collected through our analytics provider (PostHog). We do not collect bank logins, passwords, or access to any financial account.',
   },
   {
     title: '3. Why we collect it',
-    body: 'Account data is used to identify you and sync your data across devices. Financial data is used to calculate your balance, safe-to-spend amounts, insights, and coaching — the core of the service. Usage data is used to understand how the app is used and improve it. We collect and use this data on the basis of your consent, which you give when you create an account and may withdraw at any time.',
+    body: 'Account data is used to identify you, sign you in (including one-time codes sent by SMS), and sync your data across devices. Financial data is used to calculate your balance, safe-to-spend amounts, insights, and coaching — the core of the service. Chat data is used to answer your questions: when you ask Nafaka AI something, a summary of your financial situation and your question are sent to Google\'s Gemini AI service to generate a response, and are not used by Google to train models. Usage data is used to understand how the app is used and improve it. We collect and use this data on the basis of your consent, which you give when you create an account and may withdraw at any time.',
   },
   {
     title: '4. Consent',
-    body: 'When you sign up and complete onboarding, you consent to the collection and use of your data as described here. Consent choices you make during onboarding — such as notification preferences — are respected and can be changed at any time. You can withdraw consent or ask us to delete your data by contacting us (see section 9).',
+    body: 'When you sign up and complete onboarding, you consent to the collection and use of your data as described here, including the processing of your chat questions and a summary of your financial situation by an AI service to generate coaching responses. Consent choices you make during onboarding — such as notification preferences — are respected and can be changed at any time. You can withdraw consent or ask us to delete your data by contacting us (see section 9).',
   },
   {
     title: '5. Storage and security',
-    body: 'Your data is stored securely with our hosting providers and protected by reasonable technical measures, including encryption in transit, row-level access controls, and passwords or one-time codes for authentication. We retain your data for as long as your account is active. You can delete your account at any time in the app (Profile → Delete my account), which permanently removes your account, your financial data, and your coaching history from our systems. Data remaining in backups is deleted or anonymised on the schedule our hosting providers apply.',
+    body: 'Your data is stored securely with our hosting providers and protected by reasonable technical measures, including encryption in transit, row-level access controls, and passwords or one-time codes for authentication. We retain your data for as long as your account is active. You can delete your account at any time in the app (Profile → Delete my account) or on our website, which permanently removes your account, your financial data, and your coaching history from our systems. Data remaining in backups is deleted or anonymised on the schedule our hosting providers apply.',
   },
   {
     title: '6. Sharing',
-    body: 'We do not sell your personal data. We share data only with the service providers needed to run the app — hosting (Supabase, Vercel) and analytics (PostHog) — all bound to keep your data confidential. Where a service provider processes data outside Uganda, we rely on providers that apply appropriate safeguards. We may share data if required by law or to protect our legal rights.',
+    body: 'We do not sell your personal data. We share data only with the service providers needed to run the app — hosting and storage (Supabase, Vercel), the AI service that powers Nafaka AI (Google Gemini), SMS delivery for one-time codes (Africa\'s Talking), and analytics (PostHog) — all bound to keep your data confidential. Chat prompts and summaries sent to the AI service are not used to train AI models. Where a service provider processes data outside Uganda, we rely on providers that apply appropriate safeguards. We may share data if required by law or to protect our legal rights.',
   },
   {
     title: '7. Your rights',
-    body: 'Under the Data Protection and Privacy Act, 2019 you have the right to access, correct, and delete your personal data, to object to or restrict its processing, and to lodge a complaint with the Personal Data Protection Office (PDPO). You can delete your account directly in the app (Profile → Delete my account), or exercise any other right by contacting us — we will respond within the timeframes required by law.',
+    body: 'Under the Data Protection and Privacy Act, 2019 you have the right to access, correct, and delete your personal data, to object to or restrict its processing, and to lodge a complaint with the Personal Data Protection Office (PDPO). You can delete your account directly in the app or on our website, or exercise any other right by contacting us — we will respond within the timeframes required by law.',
   },
   {
     title: '8. Children',
@@ -38,7 +39,7 @@ const sections = [
   },
   {
     title: '9. Contact',
-    body: 'Questions about this policy or your data can be sent to the Nafaka support address shown in your profile. We may update this policy from time to time; changes will be posted here with a new effective date.',
+    body: `Questions about this policy or your data can be sent to ${SUPPORT_EMAIL}. You can also report an inappropriate Nafaka AI response in the app (tap Report under any AI message). We may update this policy from time to time; changes will be posted here with a new effective date.`,
   },
 ]
 

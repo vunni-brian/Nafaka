@@ -13,6 +13,7 @@ import { fmt } from '@/components/proto/format'
 import { tierLabel, tierCopy } from '@/lib/brain/describe'
 import { daysBetween, toISODate } from '@/lib/brain/stats'
 import { createClient } from '@/utils/supabase/client'
+import { SUPPORT_EMAIL } from '@/lib/site'
 
 const LOCAL_STORAGE_KEY = 'nafaka-finance-v1'
 
@@ -254,6 +255,14 @@ export default function Profile() {
             </Link>
             <Link href="/Notifications" className="flex items-center w-full px-4 py-3.5 hover:bg-ink-50 transition">
               <p className="text-sm font-medium text-ink-800 flex-1 text-left">Notifications</p>
+              <ChevronRight size={16} className="text-ink-300" />
+            </Link>
+            <a href={`mailto:${SUPPORT_EMAIL}`} className="flex items-center w-full px-4 py-3.5 hover:bg-ink-50 transition">
+              <p className="text-sm font-medium text-ink-800 flex-1 text-left">Contact support</p>
+              <ChevronRight size={16} className="text-ink-300" />
+            </a>
+            <Link href="/delete-account" className="flex items-center w-full px-4 py-3.5 hover:bg-ink-50 transition">
+              <p className="text-sm font-medium text-ink-800 flex-1 text-left">Delete account (web)</p>
               <ChevronRight size={16} className="text-ink-300" />
             </Link>
           </div>

@@ -4,6 +4,13 @@ import React, { useState } from 'react'
 import { MessageCircle, X, Send } from 'lucide-react'
 import { track } from '@/lib/analytics'
 
+function sanitize(text: string): string {
+  return text
+    .replace(/[\w.+-]+@[\w-]+\.[\w.]+/g, '[email]')
+    .replace(/\b\+?[0-9]{7,}\b/g, '[phone]')
+    .trim()
+}
+
 export default function FeedbackButton() {
   const [open, setOpen] = useState(false)
   const [text, setText] = useState('')
@@ -11,7 +18,7 @@ export default function FeedbackButton() {
 
   const handleSend = () => {
     if (!text.trim()) return
-    track('feedback_submitted', { text: text.trim() })
+    track('feedback_submitted', { text: sanitize(text) })
     setSent(true)
     setTimeout(() => { setOpen(false); setSent(false); setText('') }, 2000)
   }

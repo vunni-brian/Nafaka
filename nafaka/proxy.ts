@@ -14,6 +14,7 @@ export async function proxy(request: NextRequest) {
     pathname === '/Onboarding' ||
     pathname === '/privacy' ||
     pathname === '/terms' ||
+    pathname === '/delete-account' ||
     pathname.startsWith('/auth/')
 
   const redirectWithCookies = (url: URL) => {

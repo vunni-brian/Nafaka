@@ -1,6 +1,7 @@
 import React from 'react'
 import Link from 'next/link'
 import { useGoogleFont } from '@/lib/fonts'
+import { SUPPORT_EMAIL } from '@/lib/site'
 import { ChevronLeft } from 'lucide-react'
 
 const sections = [
@@ -15,6 +16,10 @@ const sections = [
   {
     title: '3. Not financial advice',
     body: 'Insights, coaching, safe-to-spend calculations, and other content are general educational guidance based on the information you enter. They are not financial, legal, tax, or investment advice, and are not tailored to your specific circumstances as advice would be. You remain responsible for your own financial decisions. Seek a qualified professional for advice specific to your situation.',
+  },
+  {
+    title: '3a. Nafaka AI',
+    body: 'Nafaka AI is an automated, AI-generated coaching feature. It is experimental and can be inaccurate or incomplete. Treat every AI response as educational guidance, never as financial advice. Nafaka AI is clearly identified as an AI feature — it is not a human advisor. If you believe an AI response is harmful, misleading, or inappropriate, report it in the app (tap Report under the message) or contact us.',
   },
   {
     title: '4. Your data and your responsibility',
@@ -42,7 +47,7 @@ const sections = [
   },
   {
     title: '10. Contact',
-    body: 'Questions about these terms can be sent to the Nafaka support address shown in your profile.',
+    body: `Questions about these terms can be sent to ${SUPPORT_EMAIL}.`,
   },
 ]
 

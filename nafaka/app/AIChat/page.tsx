@@ -5,13 +5,13 @@ import BottomNav from '@/components/BottomNav'
 import AppHeader from '@/components/AppHeader'
 import { useGoogleFont } from '@/lib/fonts'
 import { useFinance } from '@/lib/store'
-import { Sparkles, Send, User } from 'lucide-react'
+import { createClient } from '@/utils/supabase/client'
+import { Sparkles, Send, User, Flag } from 'lucide-react'
 import { Bar, BarChart, CartesianGrid, XAxis, ResponsiveContainer } from 'recharts'
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart'
 import { storeTransactionsToBrain } from '@/lib/brain/adapters'
 import { answerQuestion, buildGreeting, type ChatContext, type ChatReply } from '@/lib/brain/chat'
 import { buildLlmContext } from '@/lib/brain/llm'
-import { stateLabel } from '@/lib/brain/describe'
 import { ConfidenceBar } from '@/components/proto/ui'
 import { track } from '@/lib/analytics'
 
@@ -22,6 +22,8 @@ interface Message {
   ts: string
   chart?: { day: string; amount: number }[]
 }
+
+const reportReasons = ['Harmful or offensive', 'Misleading financial advice', 'Inaccurate or wrong', 'Spam', 'Other']
 
 function now() {
   return new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
@@ -64,9 +66,28 @@ export default function AIChat() {
   ])
   const [input, setInput] = useState('')
   const [pending, setPending] = useState(false)
+  const [reporting, setReporting] = useState<Message | null>(null)
+  const [reported, setReported] = useState<Set<number>>(new Set())
   const busy = useRef(false)
   const nextId = useRef(4)
   const endRef = useRef<HTMLDivElement>(null)
+
+  const submitReport = async (reason: string) => {
+    if (!reporting) return
+    const message = reporting
+    setReporting(null)
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        await supabase.from('ai_reports').insert({ user_id: user.id, message: message.text, reason })
+      }
+      track('ai_response_reported', { reason })
+    } catch {
+      track('ai_response_reported', { reason })
+    }
+    setReported((prev) => new Set(prev).add(message.id))
+  }
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -171,6 +192,22 @@ export default function AIChat() {
                   </div>
                 )}
                 <p className={`text-[10px] mt-1.5 ${m.role === 'user' ? 'text-white/50' : 'text-ink-400'}`}>{m.ts}</p>
+                {m.role === 'ai' && (
+                  <div className="flex items-center justify-end mt-1">
+                    {reported.has(m.id) ? (
+                      <span className="text-[10px] text-ink-400">Reported</span>
+                    ) : (
+                      <button
+                        onClick={() => setReporting(m)}
+                        className="flex items-center gap-1 text-[10px] text-ink-400 hover:text-red-500 transition-colors cursor-pointer"
+                        aria-label="Report this response"
+                      >
+                        <Flag size={11} />
+                        Report
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           ))}
@@ -235,16 +272,39 @@ export default function AIChat() {
         </form>
 
         <p className="text-[11px] text-ink-400 mt-3 text-center">
-          Currently {stateLabel(behaviorModel.state)} · {formatDistance(behaviorModel.stateDetail.runwayDays)} runway · {Math.round(behaviorModel.confidence * 100)}% confidence
+          Nafaka AI is experimental and educational — not financial advice.
         </p>
       </main>
+
+      {reporting && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-label="Report response">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl">
+            <h2 className="font-display text-base font-semibold text-ink-900 mb-1">Report this response</h2>
+            <p className="text-xs text-ink-500 mb-4">
+              Tell us why. Reports help us keep Nafaka AI safe and accurate.
+            </p>
+            <div className="space-y-2">
+              {reportReasons.map((reason) => (
+                <button
+                  key={reason}
+                  onClick={() => submitReport(reason)}
+                  className="w-full cursor-pointer rounded-xl border border-ink-200 px-4 py-2.5 text-sm text-ink-800 text-left hover:border-brand-500 hover:bg-brand-50 transition-colors"
+                >
+                  {reason}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setReporting(null)}
+              className="mt-3 w-full cursor-pointer text-center text-xs text-ink-500 hover:text-ink-800 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       <BottomNav active="chat" />
     </div>
   )
-}
-
-function formatDistance(runwayDays: number): string {
-  if (!Number.isFinite(runwayDays) || runwayDays >= 999) return 'long runway'
-  return `${Math.round(runwayDays)}-day runway`
 }

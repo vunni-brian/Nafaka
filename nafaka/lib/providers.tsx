@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { FinancialProvider, useFinance } from '@/lib/store'
 import { initAnalytics, identify, pageview, resetAnalytics } from '@/lib/analytics'
 import FeedbackButton from '@/components/FeedbackButton'
+import ConsentBanner from '@/components/ConsentBanner'
 import { NativeAuthBridge } from '@/components/NativeAuthBridge'
 
 function OnboardingGuard({ children }: { children: React.ReactNode }) {
@@ -13,7 +14,7 @@ function OnboardingGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter()
 
   const isPublic =
-    pathname === '/' || pathname === '/login' || pathname === '/Onboarding' || pathname === '/privacy' || pathname === '/terms' || pathname.startsWith('/auth/')
+    pathname === '/' || pathname === '/login' || pathname === '/Onboarding' || pathname === '/privacy' || pathname === '/terms' || pathname === '/delete-account' || pathname.startsWith('/auth/')
 
   useEffect(() => {
     if (isHydrated && !isOnboarded && !isPublic) {
@@ -62,6 +63,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <OnboardingGuard>
         {children}
         <FeedbackButton />
+        <ConsentBanner />
       </OnboardingGuard>
     </FinancialProvider>
   )
