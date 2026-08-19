@@ -1,6 +1,6 @@
 import type { CapacitorConfig } from '@capacitor/cli'
 
-const appUrl = process.env.NAFAKA_APP_URL ?? 'https://nafaka.app'
+const appUrl = process.env.NAFAKA_APP_URL ?? 'https://nafaka-ruby.vercel.app'
 
 const config: CapacitorConfig = {
   appId: 'app.nafaka',
