@@ -3,9 +3,33 @@ import "./globals.css";
 import { Providers } from "@/lib/providers";
 
 export const metadata: Metadata = {
-  title: "Nafaka — AI Financial Coach",
+  metadataBase: new URL("https://nafaka-ruby.vercel.app"),
+  title: {
+    default: "Nafaka — AI Financial Coach",
+    template: "%s — Nafaka",
+  },
   description:
-    "Your money changes. Your plan should too. An AI coach that adapts to how your money actually moves.",
+    "An AI financial coach that helps you understand your money, spot patterns, and make better decisions week by week.",
+  applicationName: "Nafaka",
+  keywords: ["Nafaka", "financial coach", "money management", "Uganda", "UGX"],
+  openGraph: {
+    type: "website",
+    url: "https://nafaka-ruby.vercel.app",
+    siteName: "Nafaka",
+    title: "Nafaka — AI Financial Coach",
+    description:
+      "Understand your money, spot patterns, and make better decisions week by week.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Nafaka — AI Financial Coach",
+    description:
+      "Understand your money, spot patterns, and make better decisions week by week.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({

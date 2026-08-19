@@ -4,15 +4,7 @@ import { useEffect } from 'react'
 import { Capacitor } from '@capacitor/core'
 import { App } from '@capacitor/app'
 
-/**
- * Bridges OAuth deep links back into the app on native platforms.
- *
- * On Android/Tauri, Google's sign-in page can open in the system browser.
- * When Google redirects to the app scheme (app.nafaka://auth/callback?code=…)
- * the OS hands the URL back to the app; this listener forwards it to the
- * existing /auth/callback route inside the WebView, where the code is
- * exchanged and the session cookies are set.
- */
+/** Bridges native OAuth deep links back into the existing web callback route. */
 export function NativeAuthBridge() {
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return

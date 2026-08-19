@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { FinancialProvider, useFinance } from '@/lib/store'
 import { initAnalytics, identify, pageview, resetAnalytics } from '@/lib/analytics'
 import FeedbackButton from '@/components/FeedbackButton'
-import ConsentBanner from '@/components/ConsentBanner'
+import AnalyticsConsent from '@/components/AnalyticsConsent'
 import { NativeAuthBridge } from '@/components/NativeAuthBridge'
 
 function OnboardingGuard({ children }: { children: React.ReactNode }) {
@@ -17,15 +17,10 @@ function OnboardingGuard({ children }: { children: React.ReactNode }) {
     pathname === '/' || pathname === '/login' || pathname === '/Onboarding' || pathname === '/privacy' || pathname === '/terms' || pathname === '/delete-account' || pathname.startsWith('/auth/')
 
   useEffect(() => {
-    if (isHydrated && !isOnboarded && !isPublic) {
-      router.replace('/Onboarding')
-    }
+    if (isHydrated && !isOnboarded && !isPublic) router.replace('/Onboarding')
   }, [isHydrated, isOnboarded, isPublic, router])
 
-  if (!isHydrated) {
-    return <>{isPublic ? children : null}</>
-  }
-
+  if (!isHydrated) return <>{isPublic ? children : null}</>
   return <>{children}</>
 }
 
@@ -35,7 +30,7 @@ function Analytics() {
   const lastUserId = useRef<string | null>(null)
 
   useEffect(() => {
-    initAnalytics()
+    if (window.localStorage.getItem('nafaka-analytics-consent-v1') === 'accepted') initAnalytics()
   }, [])
 
   useEffect(() => {
@@ -63,7 +58,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <OnboardingGuard>
         {children}
         <FeedbackButton />
-        <ConsentBanner />
+        <AnalyticsConsent />
       </OnboardingGuard>
     </FinancialProvider>
   )
