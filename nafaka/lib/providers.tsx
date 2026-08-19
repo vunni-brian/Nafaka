@@ -6,6 +6,7 @@ import { FinancialProvider, useFinance } from '@/lib/store'
 import { initAnalytics, identify, pageview, resetAnalytics } from '@/lib/analytics'
 import FeedbackButton from '@/components/FeedbackButton'
 import AnalyticsConsent from '@/components/AnalyticsConsent'
+import { NativeAuthBridge } from '@/components/NativeAuthBridge'
 
 function OnboardingGuard({ children }: { children: React.ReactNode }) {
   const { isOnboarded, isHydrated } = useFinance()
@@ -53,6 +54,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <FinancialProvider>
       <Analytics />
+      <NativeAuthBridge />
       <OnboardingGuard>
         {children}
         <FeedbackButton />
