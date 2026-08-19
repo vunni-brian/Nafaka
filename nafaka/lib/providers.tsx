@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { FinancialProvider, useFinance } from '@/lib/store'
 import { initAnalytics, identify, pageview, resetAnalytics } from '@/lib/analytics'
 import FeedbackButton from '@/components/FeedbackButton'
+import AnalyticsConsent from '@/components/AnalyticsConsent'
 
 function OnboardingGuard({ children }: { children: React.ReactNode }) {
   const { isOnboarded, isHydrated } = useFinance()
@@ -28,7 +29,7 @@ function Analytics() {
   const lastUserId = useRef<string | null>(null)
 
   useEffect(() => {
-    initAnalytics()
+    if (window.localStorage.getItem('nafaka-analytics-consent-v1') === 'accepted') initAnalytics()
   }, [])
 
   useEffect(() => {
@@ -55,6 +56,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <OnboardingGuard>
         {children}
         <FeedbackButton />
+        <AnalyticsConsent />
       </OnboardingGuard>
     </FinancialProvider>
   )
