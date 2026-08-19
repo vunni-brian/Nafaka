@@ -24,6 +24,11 @@
 .DS_Store
 *.pem
 
+# Android release signing credentials/keys
+android/keystore.properties
+*.jks
+*.keystore
+
 # debug
 npm-debug.log*
 yarn-debug.log*
