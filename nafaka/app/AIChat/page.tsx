@@ -5,7 +5,7 @@ import BottomNav from '@/components/BottomNav'
 import AppHeader from '@/components/AppHeader'
 import { useGoogleFont } from '@/lib/fonts'
 import { useFinance } from '@/lib/store'
-import { Sparkles, Send, User } from 'lucide-react'
+import { Sparkles, Send, User, Flag, Check } from 'lucide-react'
 import { Bar, BarChart, CartesianGrid, XAxis, ResponsiveContainer } from 'recharts'
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart'
 import { storeTransactionsToBrain } from '@/lib/brain/adapters'
@@ -14,6 +14,7 @@ import { buildLlmContext } from '@/lib/brain/llm'
 import { stateLabel } from '@/lib/brain/describe'
 import { ConfidenceBar } from '@/components/proto/ui'
 import { track } from '@/lib/analytics'
+import { createClient } from '@/utils/supabase/client'
 
 interface Message {
   id: number
@@ -41,7 +42,9 @@ const suggestions = [
 
 export default function AIChat() {
   const body = useGoogleFont('Manrope')
-  const { profile, balance, safeToSpend, upcomingTotal, shortfall, behaviorModel, transactions, commitments, decisionLog, predictions, lastCoachingOutcome } = useFinance()
+  const { profile, balance, safeToSpend, upcomingTotal, shortfall, behaviorModel, transactions, commitments, decisionLog, predictions, lastCoachingOutcome, user } = useFinance()
+  const [reported, setReported] = useState<Set<number>>(new Set())
+  const [reporting, setReporting] = useState<number | null>(null)
 
   const ctx = useMemo<ChatContext>(
     () => ({
@@ -72,6 +75,27 @@ export default function AIChat() {
     endRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, pending])
 
+  const reportResponse = async (message: Message) => {
+    if (!user || message.role !== 'ai' || reporting === message.id || reported.has(message.id)) return
+    setReporting(message.id)
+    try {
+      const supabase = createClient()
+      const { error } = await supabase.from('ai_response_reports').insert({
+        user_id: user.id,
+        message_text: 'AI response reported from Nafaka AI Coach',
+        response_text: message.text,
+        reason: 'offensive_or_unsafe',
+      })
+      if (error) throw error
+      setReported((previous) => new Set(previous).add(message.id))
+      track('ai_response_reported')
+    } catch (error) {
+      console.error('Failed to report AI response', error)
+    } finally {
+      setReporting(null)
+    }
+  }
+
   const send = (text: string, source: 'chip' | 'typed' = 'typed') => {
     const question = text.trim()
     if (!question || busy.current) return
@@ -85,16 +109,7 @@ export default function AIChat() {
     const answer = async (reply: ChatReply, delay = 0) => {
       if (delay) await new Promise((resolve) => setTimeout(resolve, delay))
       const aiId = nextId.current++
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: aiId,
-          role: 'ai',
-          text: reply.text,
-          ts: now(),
-          ...(reply.chart ? { chart: reply.chart } : {}),
-        },
-      ])
+      setMessages((prev) => [...prev, { id: aiId, role: 'ai', text: reply.text, ts: now(), ...(reply.chart ? { chart: reply.chart } : {}) }])
       setPending(false)
       busy.current = false
     }
@@ -118,38 +133,28 @@ export default function AIChat() {
     <div className="min-h-screen bg-background pb-28 md:pb-10 md:pl-64 flex flex-col" style={{ fontFamily: body }}>
       <AppHeader />
       <main className="mx-auto w-full max-w-md px-5 pt-4 md:max-w-3xl md:px-8 flex-1 flex flex-col animate-fade-in">
-        {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-ink-100">
           <div className="flex items-center gap-2.5">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-600 text-white">
-              <Sparkles size={18} />
-            </span>
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-600 text-white"><Sparkles size={18} /></span>
             <div>
-              <p className="font-display text-base font-semibold text-ink-900">Nafaka AI</p>
-              <p className="text-[11px] text-ink-500">
-                Behavioral coaching · {Math.round(behaviorModel.confidence * 100)}% confidence
-              </p>
+              <p className="font-display text-base font-semibold text-ink-900">Nafaka AI Coach</p>
+              <p className="text-[11px] text-ink-500">Educational financial guidance · {Math.round(behaviorModel.confidence * 100)}% confidence</p>
             </div>
           </div>
           <ConfidenceBar value={Math.round(behaviorModel.confidence * 100)} />
         </div>
 
-        {/* Messages */}
+        <div className="mt-2 rounded-lg bg-ink-50 px-3 py-2 text-[11px] leading-relaxed text-ink-500">
+          Nafaka AI Coach provides educational guidance, not financial, investment, tax, or legal advice. You make your own financial decisions.
+        </div>
+
         <div className="flex-1 overflow-y-auto py-4 space-y-3">
           {messages.map((m) => (
             <div key={m.id} className={`flex gap-2.5 ${m.role === 'user' ? 'flex-row-reverse' : ''}`}>
-              <span
-                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
-                  m.role === 'user' ? 'bg-ink-900 text-white' : 'bg-brand-600 text-white'
-                }`}
-              >
+              <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${m.role === 'user' ? 'bg-ink-900 text-white' : 'bg-brand-600 text-white'}`}>
                 {m.role === 'user' ? <User size={15} /> : <Sparkles size={15} />}
               </span>
-              <div
-                className={`max-w-[78%] rounded-xl2 px-3.5 py-2.5 text-sm leading-relaxed ${
-                  m.role === 'user' ? 'bg-ink-900 text-white' : 'bg-white border border-ink-100 text-ink-800 shadow-card'
-                }`}
-              >
+              <div className={`max-w-[78%] rounded-xl2 px-3.5 py-2.5 text-sm leading-relaxed ${m.role === 'user' ? 'bg-ink-900 text-white' : 'bg-white border border-ink-100 text-ink-800 shadow-card'}`}>
                 <p>{m.text}</p>
                 {m.chart && (
                   <div className="mt-3 -mx-1">
@@ -157,12 +162,7 @@ export default function AIChat() {
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={m.chart} margin={{ left: -20 }}>
                           <CartesianGrid vertical={false} stroke="#eceef2" />
-                          <XAxis
-                            dataKey="day"
-                            tickLine={false}
-                            axisLine={false}
-                            tick={{ fill: '#65718a', fontSize: 10 }}
-                          />
+                          <XAxis dataKey="day" tickLine={false} axisLine={false} tick={{ fill: '#65718a', fontSize: 10 }} />
                           <ChartTooltip content={<ChartTooltipContent />} />
                           <Bar dataKey="amount" radius={[4, 4, 0, 0]} fill="var(--color-amount)" />
                         </BarChart>
@@ -170,75 +170,42 @@ export default function AIChat() {
                     </ChartContainer>
                   </div>
                 )}
-                <p className={`text-[10px] mt-1.5 ${m.role === 'user' ? 'text-white/50' : 'text-ink-400'}`}>{m.ts}</p>
+                <div className={`mt-1.5 flex items-center justify-between gap-3 text-[10px] ${m.role === 'user' ? 'text-white/50' : 'text-ink-400'}`}>
+                  <span>{m.ts}</span>
+                  {m.role === 'ai' && user && (
+                    <button type="button" onClick={() => reportResponse(m)} disabled={reporting === m.id || reported.has(m.id)} className="inline-flex items-center gap-1 rounded px-1.5 py-1 hover:bg-ink-50 hover:text-ink-700 disabled:opacity-70" aria-label={reported.has(m.id) ? 'Response reported' : 'Report this response'}>
+                      {reported.has(m.id) ? <Check size={11} /> : <Flag size={11} />}
+                      {reported.has(m.id) ? 'Reported' : reporting === m.id ? 'Reporting…' : 'Report'}
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           ))}
           {pending && (
             <div className="flex gap-2.5">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-600 text-white">
-                <Sparkles size={15} />
-              </span>
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-600 text-white"><Sparkles size={15} /></span>
               <div className="bg-white border border-ink-100 rounded-xl2 px-4 py-3 shadow-card">
-                <div className="flex gap-1">
-                  <span className="h-1.5 w-1.5 rounded-full bg-ink-300 animate-pulse-soft" />
-                  <span className="h-1.5 w-1.5 rounded-full bg-ink-300 animate-pulse-soft" style={{ animationDelay: '0.2s' }} />
-                  <span className="h-1.5 w-1.5 rounded-full bg-ink-300 animate-pulse-soft" style={{ animationDelay: '0.4s' }} />
-                </div>
+                <div className="flex gap-1"><span className="h-1.5 w-1.5 rounded-full bg-ink-300 animate-pulse-soft" /><span className="h-1.5 w-1.5 rounded-full bg-ink-300 animate-pulse-soft" style={{ animationDelay: '0.2s' }} /><span className="h-1.5 w-1.5 rounded-full bg-ink-300 animate-pulse-soft" style={{ animationDelay: '0.4s' }} /></div>
               </div>
             </div>
           )}
           <div ref={endRef} />
         </div>
 
-        {/* Suggestions */}
         {messages.length <= 2 && (
           <div className="pb-3">
             <p className="text-xs font-medium text-ink-500 mb-2">Try asking</p>
-            <div className="flex flex-wrap gap-2">
-              {suggestions.map((s) => (
-                <button
-                  key={s}
-                  onClick={() => send(s, 'chip')}
-                  className="rounded-full border border-ink-200 bg-white px-3 py-1.5 text-xs font-medium text-ink-700 hover:border-brand-400 hover:text-brand-700 transition cursor-pointer"
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
+            <div className="flex flex-wrap gap-2">{suggestions.map((s) => <button key={s} onClick={() => send(s, 'chip')} className="rounded-full border border-ink-200 bg-white px-3 py-1.5 text-xs font-medium text-ink-700 hover:border-brand-400 hover:text-brand-700 transition cursor-pointer">{s}</button>)}</div>
           </div>
         )}
 
-        {/* Input */}
-        <form
-          onSubmit={(e) => {
-            e.preventDefault()
-            send(input)
-          }}
-          className="flex items-center gap-2 pt-2 border-t border-ink-100"
-        >
-          <input
-            className="flex-1 rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
-            placeholder="Ask about your money behavior..."
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            aria-label="Ask about your money behavior"
-          />
-          <button
-            type="submit"
-            disabled={!input.trim() || pending}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-600 text-white transition hover:bg-brand-700 disabled:opacity-40 active:scale-95 cursor-pointer"
-            aria-label="Send message"
-          >
-            <Send size={17} />
-          </button>
+        <form onSubmit={(e) => { e.preventDefault(); send(input) }} className="flex items-center gap-2 pt-2 border-t border-ink-100">
+          <input className="flex-1 rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100" placeholder="Ask about your money behavior..." value={input} onChange={(e) => setInput(e.target.value)} aria-label="Ask about your money behavior" />
+          <button type="submit" disabled={!input.trim() || pending} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-600 text-white transition hover:bg-brand-700 disabled:opacity-40 active:scale-95 cursor-pointer" aria-label="Send message"><Send size={17} /></button>
         </form>
-
-        <p className="text-[11px] text-ink-400 mt-3 text-center">
-          Currently {stateLabel(behaviorModel.state)} · {formatDistance(behaviorModel.stateDetail.runwayDays)} runway · {Math.round(behaviorModel.confidence * 100)}% confidence
-        </p>
+        <p className="text-[11px] text-ink-400 mt-3 text-center">Currently {stateLabel(behaviorModel.state)} · {formatDistance(behaviorModel.stateDetail.runwayDays)} runway · {Math.round(behaviorModel.confidence * 100)}% confidence</p>
       </main>
-
       <BottomNav active="chat" />
     </div>
   )
