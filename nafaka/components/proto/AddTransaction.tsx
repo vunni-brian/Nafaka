@@ -51,10 +51,10 @@ export function AddTransactionModal({
     const fullNote = parts.filter(Boolean).join(' · ')
 
     if (type === 'income') {
-      track('income_added', { amount: Number(amount), source: category })
+      track('income_added', { source: category })
       addIncome(Number(amount), category, fullNote)
     } else {
-      track('expense_added', { amount: Number(amount), category })
+      track('expense_added', { category })
       addExpense(Number(amount), category, fullNote)
     }
     setDone(true)

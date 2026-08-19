@@ -1,10 +1,14 @@
-import { NextResponse } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
+import { NextResponse, type NextRequest } from 'next/server'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY
 const GEMINI_MODEL = process.env.GEMINI_MODEL ?? 'gemini-3.1-flash-lite'
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 
 const SYSTEM_PROMPT = [
   'You are Nafaka Coach, a warm, practical financial coach for a Ugandan user. Money is in UGX (Uganda shillings).',
@@ -26,9 +30,24 @@ function stripMarkdown(text: string): string {
     .trim()
 }
 
-export async function POST(request: Request): Promise<NextResponse> {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   if (!GEMINI_API_KEY) {
     return NextResponse.json({ error: 'no_key' }, { status: 503 })
+  }
+
+  const supabase = createServerClient(supabaseUrl!, supabaseKey!, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll()
+      },
+      setAll() {},
+    },
+  })
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
   let body: { question?: unknown; context?: unknown }

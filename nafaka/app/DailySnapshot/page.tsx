@@ -72,8 +72,8 @@ export default function DailySnapshot() {
     if (tracked.current) return
     tracked.current = true
     track('snapshot_viewed')
-    track('safe_to_spend_viewed', { amount: safeToSpend })
-    track('insight_viewed', { text: todayInsight })
+    track('safe_to_spend_viewed')
+    track('insight_viewed', { text: todayInsight.replace(/UGX\s?[\d,]+/gi, '[amount]') })
   }, [safeToSpend, todayInsight])
 
   const openAdd = (t: TxnType) => {

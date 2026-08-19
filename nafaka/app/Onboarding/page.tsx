@@ -87,7 +87,6 @@ export default function Onboarding() {
   const handleFinish = () => {
     track('onboarding_completed', {
       priorities: selectedPriorities,
-      startingBalance: Number(balance) || 0,
       notificationsOptIn: notifications === true,
     })
     track('consent_granted', { at: new Date().toISOString() })

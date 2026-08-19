@@ -1,10 +1,29 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import type { NextRequest } from 'next/server'
 
-function request(question: string, context = { balance: 75000 }): Request {
+const mocks = vi.hoisted(() => {
+  let user: { id: string } | null = { id: 'user-1' }
+  return {
+    setUser: (u: { id: string } | null) => {
+      user = u
+    },
+    createServerClient: vi.fn(() => ({
+      auth: {
+        getUser: vi.fn().mockImplementation(async () => ({ data: { user }, error: null })),
+      },
+    })),
+  }
+})
+
+vi.mock('@supabase/ssr', () => ({
+  createServerClient: mocks.createServerClient,
+}))
+
+function request(question: string, context = { balance: 75000 }): NextRequest {
   return new Request('http://localhost/api/chat', {
     method: 'POST',
     body: JSON.stringify({ question, context }),
-  })
+  }) as unknown as NextRequest
 }
 
 describe('POST /api/chat', () => {
@@ -12,6 +31,7 @@ describe('POST /api/chat', () => {
     vi.unstubAllEnvs()
     vi.restoreAllMocks()
     vi.resetModules()
+    mocks.setUser({ id: 'user-1' })
   })
 
   it('answers 503 when no Gemini key is configured', async () => {
@@ -19,6 +39,19 @@ describe('POST /api/chat', () => {
     const { POST } = await import('./route')
     const res = await POST(request('hi'))
     expect(res.status).toBe(503)
+  })
+
+  it('rejects an unauthenticated request', async () => {
+    mocks.setUser(null)
+    vi.stubEnv('GEMINI_API_KEY', 'test-key')
+    const fetchMock = vi.fn().mockResolvedValue(new Response('{}', { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { POST } = await import('./route')
+    const res = await POST(request('hi'))
+
+    expect(res.status).toBe(401)
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 
   it('rejects a missing question', async () => {
