@@ -1,0 +1,10 @@
+node_modules/
+
+# VibeDoctor generated reports (baseline + suppressions are tracked)
+.vibedoctor/report.json
+.vibedoctor/report.html
+.vibedoctor/agent-plan.md
+.vibedoctor/tool-verification.json
+.vibedoctor/privacy-only.json
+.vibedoctor/dpdp/
+.env
