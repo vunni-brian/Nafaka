@@ -8,6 +8,7 @@ import { useFinance } from '@/lib/store'
 import { CalendarClock, GraduationCap, PartyPopper, Coins, Briefcase, Plus, X, Check, CheckCheck, XCircle } from 'lucide-react'
 import { SectionTitle, StatPill } from '@/components/proto/ui'
 import { fmt } from '@/components/proto/format'
+import { useToast } from '@/components/Toast'
 
 const typeIcon = {
   income: Coins,
@@ -24,6 +25,7 @@ const toneStyles = {
 export default function LifeEvents() {
   const body = useGoogleFont('Manrope')
   const { commitments, addCommitment, setCommitmentStatus } = useFinance()
+  const toast = useToast()
 
   const [showForm, setShowForm] = useState(false)
   const [label, setLabel] = useState('')
@@ -35,6 +37,7 @@ export default function LifeEvents() {
   const handleAdd = () => {
     if (!canAdd) return
     addCommitment(label.trim(), when.trim(), Number(amount))
+    toast.show('success', 'Commitment added')
     setLabel('')
     setWhen('')
     setAmount('')
@@ -56,7 +59,7 @@ export default function LifeEvents() {
   return (
     <div className="min-h-screen bg-ink-50 pb-28 md:pb-10 md:pl-64" style={{ fontFamily: body }}>
       <AppHeader />
-      <main className="mx-auto w-full max-w-md px-5 pt-4 md:max-w-3xl md:px-8 space-y-6 animate-fade-up">
+      <main id="main" className="mx-auto w-full max-w-md px-5 pt-4 md:max-w-3xl md:px-8 space-y-6 animate-fade-up">
         <div>
           <h1 className="font-display text-2xl font-semibold text-ink-900">Life Events</h1>
           <p className="text-sm text-ink-500 mt-1">
@@ -72,7 +75,7 @@ export default function LifeEvents() {
               </span>
               <div>
                 <p className="text-sm font-semibold text-ink-900">{next.label} coming up</p>
-                <p className="text-xs text-ink-500">{next.when} &middot; {fmt(next.amount)}</p>
+                <p className="text-xs text-ink-500 tabular-nums">{next.when} &middot; {fmt(next.amount)}</p>
               </div>
             </div>
             <p className="text-xs text-ink-600 mt-3 leading-relaxed">
@@ -98,7 +101,7 @@ export default function LifeEvents() {
                         <p className="text-sm font-semibold text-ink-900">{e.label}</p>
                         <StatPill tone={t.pill}>{e.impact}</StatPill>
                       </div>
-                      <p className="text-xs text-ink-500 mt-1">{e.when} &middot; {fmt(e.amount)}</p>
+                      <p className="text-xs text-ink-500 mt-1 tabular-nums">{e.when} &middot; {fmt(e.amount)}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 mt-3 pt-3 border-t border-ink-100">

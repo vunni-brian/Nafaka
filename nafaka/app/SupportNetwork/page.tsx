@@ -8,12 +8,14 @@ import { useFinance } from '@/lib/store'
 import { ArrowUpRight, ArrowDownRight, Users, Plus, X, Check } from 'lucide-react'
 import { SectionTitle } from '@/components/proto/ui'
 import { fmt } from '@/components/proto/format'
+import { useToast } from '@/components/Toast'
 
 type Direction = 'lent' | 'borrowed'
 
 export default function SupportNetwork() {
   const body = useGoogleFont('Manrope')
   const { network, addNetworkEntry } = useFinance()
+  const toast = useToast()
 
   const [showForm, setShowForm] = useState(false)
   const [name, setName] = useState('')
@@ -29,6 +31,7 @@ export default function SupportNetwork() {
   const handleAdd = () => {
     if (!canAdd) return
     addNetworkEntry(name.trim(), 'Contact', direction, Number(amount))
+    toast.show('success', 'Added to your network')
     setName('')
     setAmount('')
     setNote('')
@@ -39,7 +42,7 @@ export default function SupportNetwork() {
   return (
     <div className="min-h-screen bg-ink-50 pb-28 md:pb-10 md:pl-64" style={{ fontFamily: body }}>
       <AppHeader />
-      <main className="mx-auto w-full max-w-md px-5 pt-4 md:max-w-3xl md:px-8 space-y-6 animate-fade-up">
+      <main id="main" className="mx-auto w-full max-w-md px-5 pt-4 md:max-w-3xl md:px-8 space-y-6 animate-fade-up">
         <div>
           <h1 className="font-display text-2xl font-semibold text-ink-900">Support Network</h1>
           <p className="text-sm text-ink-500 mt-1">
@@ -53,14 +56,14 @@ export default function SupportNetwork() {
               <ArrowUpRight size={16} className="text-accent-600" />
               <p className="text-xs font-medium text-ink-500">Given YTD</p>
             </div>
-            <p className="mt-2 text-xl font-bold text-ink-900">{fmt(totalGiven)}</p>
+            <p className="mt-2 text-xl font-bold text-ink-900 tabular-nums">{fmt(totalGiven)}</p>
           </div>
           <div className="card p-4">
             <div className="flex items-center gap-2">
               <ArrowDownRight size={16} className="text-brand-600" />
               <p className="text-xs font-medium text-ink-500">Received YTD</p>
             </div>
-            <p className="mt-2 text-xl font-bold text-ink-900">{fmt(totalReceived)}</p>
+            <p className="mt-2 text-xl font-bold text-ink-900 tabular-nums">{fmt(totalReceived)}</p>
           </div>
         </div>
 
@@ -81,7 +84,7 @@ export default function SupportNetwork() {
                       <p className="text-xs text-ink-500">{p.relationship}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-bold text-ink-900">{fmt(Math.abs(p.balance))}</p>
+                      <p className="text-sm font-bold text-ink-900 tabular-nums">{fmt(Math.abs(p.balance))}</p>
                       <p className="text-[10px] text-ink-400 mt-0.5">YTD</p>
                     </div>
                   </div>

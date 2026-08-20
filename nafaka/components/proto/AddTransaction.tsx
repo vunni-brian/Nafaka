@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import { Check, Plus, Minus } from 'lucide-react'
 import { Modal } from '@/components/proto/ui'
 import { useFinance } from '@/lib/store'
+import { useToast } from '@/components/Toast'
 import { track } from '@/lib/analytics'
 
 const categories = {
@@ -31,6 +32,7 @@ export function AddTransactionModal({
   type: TxnType
 }) {
   const { addIncome, addExpense } = useFinance()
+  const toast = useToast()
   const [type, setType] = useState<TxnType>(initialType)
   const [amount, setAmount] = useState('')
   const [category, setCategory] = useState('')
@@ -57,6 +59,7 @@ export function AddTransactionModal({
       track('expense_added', { category })
       addExpense(Number(amount), category, fullNote)
     }
+    toast.show('success', type === 'income' ? 'Income saved' : 'Expense saved')
     setDone(true)
     setTimeout(() => {
       setDone(false)
@@ -104,7 +107,7 @@ export function AddTransactionModal({
           <label className="text-xs font-semibold text-ink-600 mb-1.5 block">Amount (UGX)</label>
           <div className="relative">
             <input
-              className="input pl-10 text-lg font-semibold"
+              className="input pl-10 text-lg font-semibold tabular-nums"
               inputMode="numeric"
               placeholder="0"
               value={amount}

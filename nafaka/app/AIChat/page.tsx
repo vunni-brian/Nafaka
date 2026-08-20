@@ -6,13 +6,14 @@ import AppHeader from '@/components/AppHeader'
 import { useGoogleFont } from '@/lib/fonts'
 import { useFinance } from '@/lib/store'
 import { createClient } from '@/utils/supabase/client'
-import { Sparkles, Send, User, Flag } from 'lucide-react'
+import { Sparkles, Send, User, Flag, WifiOff } from 'lucide-react'
 import { Bar, BarChart, CartesianGrid, XAxis, ResponsiveContainer } from 'recharts'
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart'
 import { storeTransactionsToBrain } from '@/lib/brain/adapters'
 import { answerQuestion, buildGreeting, type ChatContext, type ChatReply } from '@/lib/brain/chat'
 import { buildLlmContext } from '@/lib/brain/llm'
 import { ConfidenceBar } from '@/components/proto/ui'
+import { useToast } from '@/components/Toast'
 import { track } from '@/lib/analytics'
 
 interface Message {
@@ -44,6 +45,7 @@ const suggestions = [
 export default function AIChat() {
   const body = useGoogleFont('Manrope')
   const { profile, balance, safeToSpend, upcomingTotal, shortfall, behaviorModel, transactions, commitments, decisionLog, predictions, lastCoachingOutcome } = useFinance()
+  const toast = useToast()
 
   const ctx = useMemo<ChatContext>(
     () => ({
@@ -66,11 +68,13 @@ export default function AIChat() {
   ])
   const [input, setInput] = useState('')
   const [pending, setPending] = useState(false)
+  const [offlineMode, setOfflineMode] = useState(false)
   const [reporting, setReporting] = useState<Message | null>(null)
   const [reported, setReported] = useState<Set<number>>(new Set())
   const busy = useRef(false)
   const nextId = useRef(4)
   const endRef = useRef<HTMLDivElement>(null)
+  const reportRef = useRef<HTMLDivElement>(null)
 
   const submitReport = async (reason: string) => {
     if (!reporting) return
@@ -81,6 +85,7 @@ export default function AIChat() {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
         await supabase.from('ai_reports').insert({ user_id: user.id, message: message.text, reason })
+        toast.show('success', 'Report submitted — thanks for the feedback.')
       }
       track('ai_response_reported', { reason })
     } catch {
@@ -92,6 +97,38 @@ export default function AIChat() {
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, pending])
+
+  useEffect(() => {
+    if (!reporting) return
+    const previouslyFocused = document.activeElement as HTMLElement | null
+    reportRef.current?.focus()
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setReporting(null)
+        return
+      }
+      if (e.key === 'Tab' && reportRef.current) {
+        const focusables = reportRef.current.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])',
+        )
+        if (focusables.length === 0) return
+        const first = focusables[0]
+        const last = focusables[focusables.length - 1]
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault()
+          last.focus()
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault()
+          first.focus()
+        }
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      previouslyFocused?.focus?.()
+    }
+  }, [reporting])
 
   const send = (text: string, source: 'chip' | 'typed' = 'typed') => {
     const question = text.trim()
@@ -130,15 +167,19 @@ export default function AIChat() {
         const data = await res.json()
         if (!data.text) throw new Error('empty')
         track('chat_llm_reply')
+        setOfflineMode(false)
         await answer({ text: data.text })
       })
-      .catch(() => answer(answerQuestion(question, ctx), 600))
+      .catch(() => {
+        setOfflineMode(true)
+        answer(answerQuestion(question, ctx), 600)
+      })
   }
 
   return (
     <div className="min-h-screen bg-background pb-28 md:pb-10 md:pl-64 flex flex-col" style={{ fontFamily: body }}>
       <AppHeader />
-      <main className="mx-auto w-full max-w-md px-5 pt-4 md:max-w-3xl md:px-8 flex-1 flex flex-col animate-fade-in">
+      <main id="main" className="mx-auto w-full max-w-md px-5 pt-4 md:max-w-4xl md:px-10 flex-1 flex flex-col animate-fade-in">
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-ink-100">
           <div className="flex items-center gap-2.5">
@@ -156,7 +197,20 @@ export default function AIChat() {
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto py-4 space-y-3">
+        <div className="flex-1 overflow-y-auto py-4">
+          <div className="space-y-3 md:flex md:gap-8 md:items-start">
+            <div className="md:flex-1 md:min-w-0 space-y-3">
+          {offlineMode && (
+            <div
+              role="status"
+              className="flex items-start gap-2 rounded-xl border border-accent-200 bg-accent-50 px-3.5 py-2.5 text-xs text-accent-700"
+            >
+              <WifiOff size={14} className="shrink-0 mt-0.5" />
+              <span>
+                Offline mode — answers come from your local data until the connection recovers.
+              </span>
+            </div>
+          )}
           {messages.map((m) => (
             <div key={m.id} className={`flex gap-2.5 ${m.role === 'user' ? 'flex-row-reverse' : ''}`}>
               <span
@@ -173,7 +227,7 @@ export default function AIChat() {
               >
                 <p>{m.text}</p>
                 {m.chart && (
-                  <div className="mt-3 -mx-1">
+                  <div className="mt-3 -mx-1" role="img" aria-label={`Chart: ${m.chart.map((d) => `${d.day}: ${d.amount.toLocaleString()}`).join(', ')}`}>
                     <ChartContainer config={chartConfig} className="h-32 w-full">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={m.chart} margin={{ left: -20 }}>
@@ -226,11 +280,31 @@ export default function AIChat() {
             </div>
           )}
           <div ref={endRef} />
+            </div>
+
+            {/* Desktop suggestion rail */}
+            <aside className="hidden md:block md:w-60 shrink-0" aria-label="Suggested questions">
+              <div className="card p-4">
+                <p className="text-xs font-medium text-ink-500 mb-2">Try asking</p>
+                <div className="flex flex-col gap-2">
+                  {suggestions.map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => send(s, 'chip')}
+                      className="rounded-xl border border-ink-200 bg-white px-3 py-2 text-left text-xs font-medium text-ink-700 hover:border-brand-400 hover:text-brand-700 transition cursor-pointer"
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </aside>
+          </div>
         </div>
 
         {/* Suggestions */}
         {messages.length <= 2 && (
-          <div className="pb-3">
+          <div className="pb-3 md:hidden">
             <p className="text-xs font-medium text-ink-500 mb-2">Try asking</p>
             <div className="flex flex-wrap gap-2">
               {suggestions.map((s) => (
@@ -255,7 +329,7 @@ export default function AIChat() {
           className="flex items-center gap-2 pt-2 border-t border-ink-100"
         >
           <input
-            className="flex-1 rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
+            className="flex-1 rounded-xl border border-ink-200 bg-white px-4 py-3 text-base outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100 sm:text-sm"
             placeholder="Ask about your money behavior..."
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -278,7 +352,11 @@ export default function AIChat() {
 
       {reporting && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-label="Report response">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl">
+          <div
+            ref={reportRef}
+            tabIndex={-1}
+            className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl outline-none"
+          >
             <h2 className="font-display text-base font-semibold text-ink-900 mb-1">Report this response</h2>
             <p className="text-xs text-ink-500 mb-4">
               Tell us why. Reports help us keep Nafaka AI safe and accurate.

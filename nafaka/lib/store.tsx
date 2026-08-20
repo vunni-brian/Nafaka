@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useState, useCallback, useMemo, useRef, type ReactNode } from 'react'
+import React, { createContext, useContext, useState, useCallback, useMemo, useRef, useEffect, type ReactNode } from 'react'
 import { buildBehaviorModel } from './brain'
 import { storeCommitmentsToBrain, storeSnapshotsToBrain, storeTransactionsToBrain } from './brain/adapters'
 import { coachingStats, latestClosedOutcome, successRatesByKey, syncCoaching, type CoachingRecord, type CoachingStats } from './brain/coaching'
@@ -377,6 +377,26 @@ export function FinancialProvider({ children }: { children: ReactNode }) {
         })
     }
   }, [isHydrated, user, profile, transactions, commitments, goals, network, coachingLog, stateMemory, situationMemory])
+
+  useEffect(() => {
+    if (!user || !isHydrated) return
+    const onOnline = () => {
+      if (!lastSavedRef.current) return
+      try {
+        const state = JSON.parse(lastSavedRef.current) as PersistedFinance
+        createClient()
+          .from('finance_states')
+          .upsert({ user_id: user.id, state, schema_version: SCHEMA_VERSION, updated_at: new Date().toISOString() })
+          .then(({ error }) => {
+            if (error) console.error('Failed to re-sync finance state:', error.message)
+          })
+      } catch {
+        console.error('Failed to parse persisted finance state for re-sync')
+      }
+    }
+    window.addEventListener('online', onOnline)
+    return () => window.removeEventListener('online', onOnline)
+  }, [user, isHydrated])
 
   const balance = computeBalance(transactions, profile.startingBalance)
   const upcomingTotal = computeUpcomingTotal(commitments)

@@ -47,10 +47,11 @@ export function AreaChart({
 
   const gid = `area-${tone}-${Math.round(max)}`
   const last = pts[pts.length - 1]
+  const desc = data.map((v, i) => `${labels?.[i] ?? i}: ${v}`).join(', ')
 
   return (
     <div className="w-full">
-      <svg viewBox={`0 0 ${w} ${h}`} className="w-full" style={{ height }}>
+      <svg viewBox={`0 0 ${w} ${h}`} className="w-full" style={{ height }} role="img" aria-label={`Chart: ${desc}`}>
         <defs>
           <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={colors.fill} />
@@ -72,7 +73,7 @@ export function AreaChart({
         />
         <circle cx={last.x} cy={last.y} r="4" fill={colors.stroke} />
         <circle cx={last.x} cy={last.y} r="7" fill={colors.stroke} opacity="0.2" />
-        <text x={last.x} y={last.y - 10} textAnchor="middle" fontSize="11" fontWeight="700" fill={colors.text}>
+        <text x={last.x} y={last.y - 10} textAnchor="middle" fontSize="11" fontWeight="700" fill={colors.text} style={{ fontVariantNumeric: 'tabular-nums' }}>
           {valuePrefix}
           {formatNum(last.v)}
         </text>
@@ -103,7 +104,7 @@ export function BarChart({
   const colors = { brand: '#19bd80', accent: '#f27d14', ink: '#65718a' }[tone]
   return (
     <div className="w-full">
-      <div className="flex items-end gap-2" style={{ height }}>
+      <div className="flex items-end gap-2" style={{ height }} role="img" aria-label={`Chart: ${data.map((v, i) => `${labels[i] ?? i}: ${v}`).join(', ')}`}>
         {data.map((v, i) => (
           <div key={i} className="flex-1 flex flex-col items-center justify-end gap-1.5">
             <div className="relative w-full flex items-end justify-center" style={{ height: height - 18 }}>
@@ -143,9 +144,10 @@ export function DonutSegments({
   const c = 2 * Math.PI * r
   const total = segments.reduce((s, x) => s + x.value, 0) || 1
   const offsets = segments.map((s) => (s.value / total) * c)
+  const desc = segments.map((s) => `${s.label}: ${s.value}`).join(', ')
   return (
     <div className="relative inline-flex items-center justify-center" style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="-rotate-90">
+      <svg width={size} height={size} className="-rotate-90" role="img" aria-label={`Chart: ${desc}`}>
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#eceef2" strokeWidth={stroke} />
         {segments.map((s, i) => {
           const len = offsets[i]
@@ -168,7 +170,7 @@ export function DonutSegments({
       </svg>
       {centerLabel && (
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-lg font-bold text-ink-900 leading-none">{centerLabel}</span>
+          <span className="text-lg font-bold text-ink-900 leading-none tabular-nums">{centerLabel}</span>
           {centerSub && <span className="text-[10px] text-ink-500 mt-1">{centerSub}</span>}
         </div>
       )}

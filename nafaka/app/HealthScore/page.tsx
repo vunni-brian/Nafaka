@@ -39,7 +39,7 @@ export default function HealthScore() {
     return (
       <div className="min-h-screen bg-ink-50 pb-28 md:pb-10 md:pl-64" style={{ fontFamily: body }}>
         <AppHeader />
-        <main className="mx-auto w-full max-w-md px-5 pt-4 md:max-w-3xl md:px-8 space-y-6 animate-fade-up">
+        <main id="main" className="mx-auto w-full max-w-md px-5 pt-4 md:max-w-3xl md:px-8 space-y-6 animate-fade-up">
           <div>
             <h1 className="font-display text-2xl font-semibold text-ink-900">Financial Health</h1>
             <p className="text-sm text-ink-500 mt-1">Measured by behavior, not by how much you earn.</p>
@@ -92,14 +92,15 @@ export default function HealthScore() {
   return (
     <div className="min-h-screen bg-ink-50 pb-28 md:pb-10 md:pl-64" style={{ fontFamily: body }}>
       <AppHeader />
-      <main className="mx-auto w-full max-w-md px-5 pt-4 md:max-w-3xl md:px-8 space-y-6 animate-fade-up">
+      <main id="main" className="mx-auto w-full max-w-md px-5 pt-4 md:max-w-6xl md:px-10 space-y-6 animate-fade-up">
         <div>
           <h1 className="font-display text-2xl font-semibold text-ink-900">Financial Health</h1>
           <p className="text-sm text-ink-500 mt-1">Measured by behavior, not by how much you earn.</p>
         </div>
 
+        <div className="md:grid md:grid-cols-3 md:gap-6 md:items-start">
         {/* Score hero */}
-        <div className="card p-6 flex flex-col items-center text-center">
+        <div className="card p-6 flex flex-col items-center text-center md:row-start-1 md:col-start-1 md:col-span-2">
           <Ring value={score} size={148} stroke={12} label={`${score}`} sublabel="of 100" tone="brand" />
           <div className="mt-4 flex items-center gap-1.5">
             <TrendingUp size={15} className="text-brand-600" />
@@ -116,7 +117,7 @@ export default function HealthScore() {
         </div>
 
         {/* Personality teaser */}
-        <div className="card p-4 bg-gradient-to-br from-brand-50 to-white">
+        <div className="card p-4 bg-gradient-to-br from-brand-50 to-white md:row-start-1 md:col-start-3">
           <div className="flex items-center gap-3">
             <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-600 text-white">
               <Heart size={20} />
@@ -135,9 +136,9 @@ export default function HealthScore() {
         </div>
 
         {/* Dimensions */}
-        <div>
+        <div className="md:row-start-2 md:col-start-1 md:col-span-2">
           <SectionTitle title="Score breakdown" hint={`${health.readyCount} behavioral dimensions`} />
-          <div className="space-y-3">
+          <div className="space-y-3 md:grid md:grid-cols-2 md:gap-3 md:space-y-0">
             {dimensions.map((d) => (
               <div key={d.label} className="card p-4">
                 <div className="flex items-center justify-between">
@@ -145,7 +146,7 @@ export default function HealthScore() {
                     <span className={`h-2.5 w-2.5 rounded-full ${statusBg(d.status)}`} />
                     <p className="text-sm font-semibold text-ink-900">{d.label}</p>
                   </div>
-                  <p className={`text-lg font-bold ${statusColor(d.status)}`}>{d.score}</p>
+                  <p className={`text-lg font-bold tabular-nums ${statusColor(d.status)}`}>{d.score}</p>
                 </div>
                 <div className="mt-2.5 h-1.5 w-full rounded-full bg-ink-100 overflow-hidden">
                   <div
@@ -160,7 +161,7 @@ export default function HealthScore() {
         </div>
 
         {/* Judgment filter note */}
-        <div className="card p-4 border-brand-100 bg-brand-50/50">
+        <div className="card p-4 border-brand-100 bg-brand-50/50 md:row-start-2 md:col-start-3">
           <div className="flex items-start gap-3">
             <ShieldCheck size={18} className="text-brand-700 mt-0.5" />
             <div>
@@ -170,6 +171,7 @@ export default function HealthScore() {
               </p>
             </div>
           </div>
+        </div>
         </div>
       </main>
 

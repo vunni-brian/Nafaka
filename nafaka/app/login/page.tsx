@@ -122,6 +122,21 @@ function LoginForm() {
     } finally { setLoading(false) }
   }
 
+  const resendConfirmation = async () => {
+    if (loading || !email.trim()) return
+    setLoading(true)
+    setError(null)
+    try {
+      const supabase = createClient()
+      const { error } = await supabase.auth.resend({ type: 'signup', email: email.trim() })
+      if (error) throw error
+      setMessage('Confirmation link resent — check your inbox again.')
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Something went wrong. Please try again.'
+      setError(msg.replace(/^supabase/i, '').trim())
+    } finally { setLoading(false) }
+  }
+
   const inputClass = 'flex w-full items-center gap-3 rounded-xl2 border border-ink-200 bg-white px-4 py-3.5 focus-within:border-brand-500 transition-colors'
   return (
     <div className="min-h-screen bg-ink-50 relative overflow-hidden" style={{ fontFamily: body }}>
@@ -131,8 +146,21 @@ function LoginForm() {
         <div className="mt-14 flex-1 flex flex-col justify-center animate-fade-up">
           <h1 style={{ fontFamily: display }} className="font-display text-4xl leading-[1.08] font-medium text-ink-900 mb-2">{mode === 'signin' ? 'Welcome back' : mode === 'signup' ? 'Start your plan' : 'Sign in with your number'}</h1>
           <p className="text-ink-500 text-base mb-8">{mode === 'signin' ? 'Sign in to your Nafaka account.' : mode === 'signup' ? 'Create an account — takes about a minute.' : 'We\'ll text you a code. No email or password needed.'}</p>
-          {mode === 'phone' ? <div className="space-y-4">{!otpSent ? <><label className="block"><span className="sr-only">Phone number</span><div className={inputClass}><Smartphone size={17} className="text-ink-400 shrink-0" /><input type="tel" required autoComplete="tel" inputMode="tel" placeholder="+256 700 000 000" value={phone} onChange={(e) => setPhone(e.target.value)} className="flex-1 bg-transparent outline-none text-ink-900 placeholder:text-ink-400 text-sm min-w-0" /></div></label><button type="button" onClick={handlePhoneSend} disabled={loading || phone.trim().length < 8} className="btn-primary w-full disabled:opacity-60 disabled:cursor-not-allowed">{loading ? 'Please wait…' : 'Send code'}</button></> : <><label className="block"><span className="sr-only">Verification code</span><div className={inputClass}><ShieldCheck size={17} className="text-ink-400 shrink-0" /><input type="text" required inputMode="numeric" autoComplete="one-time-code" placeholder="6-digit code" value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))} className="flex-1 bg-transparent outline-none text-ink-900 placeholder:text-ink-400 text-sm min-w-0" /></div></label><button type="button" onClick={handlePhoneVerify} disabled={loading || otp.length < 4} className="btn-primary w-full disabled:opacity-60 disabled:cursor-not-allowed">{loading ? 'Please wait…' : 'Verify & sign in'}</button><button type="button" onClick={() => { setOtpSent(false); setOtp('') }} className="cursor-pointer w-full text-center text-sm text-brand-700 hover:underline">Use a different number</button></>}</div> : <form onSubmit={handleSubmit} className="space-y-4" noValidate><label className="block"><span className="sr-only">Email</span><div className={inputClass}><Mail size={17} className="text-ink-400 shrink-0" /><input type="email" required autoComplete="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="flex-1 bg-transparent outline-none text-ink-900 placeholder:text-ink-400 text-sm min-w-0" /></div></label><label className="block"><span className="sr-only">Password</span><div className={inputClass}><Lock size={17} className="text-ink-400 shrink-0" /><input type="password" required autoComplete={mode === 'signin' ? 'current-password' : 'new-password'} placeholder="••••••••" minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} className="flex-1 bg-transparent outline-none text-ink-900 placeholder:text-ink-400 text-sm min-w-0" /></div></label>{error && <p role="alert" className="text-sm text-red-500 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3">{error.replace(/^: /, '')}</p>}{message && <p role="status" className="text-sm text-brand-700 bg-brand-50 border border-brand-500/20 rounded-xl px-4 py-3">{message}</p>}<button type="submit" disabled={loading} className="btn-primary w-full disabled:opacity-60 disabled:cursor-not-allowed">{loading ? 'Please wait…' : mode === 'signin' ? <><LogIn size={17} /> Sign in</> : <><UserPlus size={17} /> Create account</>}</button></form>}
-          {error && mode === 'phone' && <p role="alert" className="mt-4 text-sm text-red-500 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3">{error.replace(/^: /, '')}</p>}
+          {mode === 'phone' ? <div className="space-y-4">{!otpSent ? <><label className="block"><span className="sr-only">Phone number</span><div className={inputClass}><Smartphone size={17} className="text-ink-400 shrink-0" /><input type="tel" required autoComplete="tel" inputMode="tel" placeholder="+256 700 000 000" value={phone} onChange={(e) => setPhone(e.target.value)} className="flex-1 bg-transparent outline-none text-ink-900 placeholder:text-ink-400 text-base sm:text-sm min-w-0" /></div></label><button type="button" onClick={handlePhoneSend} disabled={loading || phone.trim().length < 8} className="btn-primary w-full disabled:opacity-60 disabled:cursor-not-allowed">{loading ? 'Please wait…' : 'Send code'}</button></> : <><label className="block"><span className="sr-only">Verification code</span><div className={inputClass}><ShieldCheck size={17} className="text-ink-400 shrink-0" /><input type="text" required inputMode="numeric" autoComplete="one-time-code" placeholder="6-digit code" value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))} className="flex-1 bg-transparent outline-none text-ink-900 placeholder:text-ink-400 text-base sm:text-sm min-w-0" /></div></label><button type="button" onClick={handlePhoneVerify} disabled={loading || otp.length < 4} className="btn-primary w-full disabled:opacity-60 disabled:cursor-not-allowed">{loading ? 'Please wait…' : 'Verify & sign in'}</button><button type="button" onClick={() => { setOtpSent(false); setOtp('') }} className="cursor-pointer w-full text-center text-sm text-brand-700 hover:underline">Use a different number</button></>}</div> : <form onSubmit={handleSubmit} className="space-y-4" noValidate><label className="block"><span className="sr-only">Email</span><div className={inputClass}><Mail size={17} className="text-ink-400 shrink-0" /><input type="email" required autoComplete="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="flex-1 bg-transparent outline-none text-ink-900 placeholder:text-ink-400 text-base sm:text-sm min-w-0" /></div></label><label className="block"><span className="sr-only">Password</span><div className={inputClass}><Lock size={17} className="text-ink-400 shrink-0" /><input type="password" required autoComplete={mode === 'signin' ? 'current-password' : 'new-password'} placeholder="••••••••" minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} className="flex-1 bg-transparent outline-none text-ink-900 placeholder:text-ink-400 text-base sm:text-sm min-w-0" /></div></label>{error && <p role="alert" className="text-sm text-red-500 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3">{error.replace(/^: /, '')}</p>}{message && <p role="status" className="text-sm text-brand-700 bg-brand-50 border border-brand-500/20 rounded-xl px-4 py-3">{message}</p>}<button type="submit" disabled={loading} className="btn-primary w-full disabled:opacity-60 disabled:cursor-not-allowed">{loading ? 'Please wait…' : mode === 'signin' ? <><LogIn size={17} /> Sign in</> : <><UserPlus size={17} /> Create account</>}</button></form>}
+          {error && <p role="alert" className="mt-4 text-sm text-red-500 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3">{error.replace(/^: /, '')}</p>}
+          {message && !error && (
+            <div role="status" className="mt-4 text-sm text-brand-700 bg-brand-50 border border-brand-100 rounded-xl px-4 py-3">
+              <p>{message}</p>
+              <button
+                type="button"
+                onClick={resendConfirmation}
+                disabled={loading}
+                className="mt-2 text-xs font-semibold text-brand-700 underline underline-offset-2 hover:text-brand-800 disabled:opacity-60"
+              >
+                Resend confirmation link
+              </button>
+            </div>
+          )}
           <div className="flex items-center gap-3 my-6" role="separator"><div className="h-px flex-1 bg-ink-200" /><span className="text-xs text-ink-400">or</span><div className="h-px flex-1 bg-ink-200" /></div>
           <button type="button" onClick={handleGoogle} disabled={loading} className="cursor-pointer w-full flex items-center justify-center gap-3 rounded-xl2 border border-ink-200 bg-white text-ink-900 font-semibold py-4 text-base hover:bg-ink-50 transition disabled:opacity-60 disabled:cursor-not-allowed"><GoogleIcon />Continue with Google</button>
           <button type="button" onClick={() => { setMode(mode === 'phone' ? 'signin' : mode === 'signin' ? 'signup' : 'signin'); setError(null); setMessage(null) }} className="cursor-pointer mt-6 text-center text-sm text-brand-700 hover:underline">{mode === 'phone' ? 'Prefer email? Sign in with email' : mode === 'signin' ? 'New here? Create an account' : 'Already have an account? Sign in'}</button>
@@ -144,4 +172,21 @@ function LoginForm() {
   )
 }
 
-export default function LoginPage() { return <Suspense fallback={<div className="min-h-screen bg-ink-50" />}><LoginForm /></Suspense> }
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-ink-50 flex items-center justify-center" aria-busy="true">
+          <div className="flex items-center gap-2">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-600 text-white shadow-glow">
+              <Sparkles size={17} />
+            </span>
+            <span className="font-display text-xl font-semibold text-ink-900 tracking-tight">Nafaka</span>
+          </div>
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
+  )
+}

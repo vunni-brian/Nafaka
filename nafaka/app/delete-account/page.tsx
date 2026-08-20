@@ -12,6 +12,7 @@ export default function DeleteAccountPage() {
   const display = useGoogleFont('Fraunces')
   const body = useGoogleFont('Manrope')
   const [user, setUser] = useState<{ email: string | undefined } | null>(null)
+  const [checking, setChecking] = useState(true)
   const [checked, setChecked] = useState(false)
   const [working, setWorking] = useState(false)
   const [done, setDone] = useState(false)
@@ -20,10 +21,17 @@ export default function DeleteAccountPage() {
   const [status, setStatus] = useState<string | null>(null)
 
   useEffect(() => {
+    let cancelled = false
     const supabase = createClient()
     supabase.auth.getUser().then(({ data }) => {
-      if (data.user) setUser({ email: data.user.email ?? undefined })
+      if (!cancelled && data.user) setUser({ email: data.user.email ?? undefined })
     })
+    .finally(() => {
+      if (!cancelled) setChecking(false)
+    })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   const deleteHere = async () => {
@@ -82,7 +90,12 @@ export default function DeleteAccountPage() {
           </h1>
         </div>
 
-        {done ? (
+        {checking ? (
+          <div className="space-y-4" aria-busy="true">
+            <div className="h-24 rounded-2xl bg-secondary/60 animate-pulse" />
+            <div className="h-12 rounded-full bg-secondary/60 animate-pulse" />
+          </div>
+        ) : done ? (
           <div className="space-y-4">
             <div className="rounded-2xl border border-secondary/20 bg-secondary/5 p-5">
               <h2 style={{ fontFamily: display }} className="text-base font-semibold text-foreground mb-2">
@@ -141,7 +154,7 @@ export default function DeleteAccountPage() {
                 placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground outline-none focus:border-primary"
+                className="w-full rounded-xl border border-border bg-card px-4 py-3 text-base text-foreground outline-none focus:border-primary sm:text-sm"
               />
             </label>
             <input

@@ -41,7 +41,13 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full antialiased">
       <body className="min-h-full">
-        <ErrorBoundary>
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-ink-900 focus:shadow-card"
+      >
+        Skip to content
+      </a>
+      <ErrorBoundary>
           <Providers>{children}</Providers>
         </ErrorBoundary>
       </body>

@@ -10,6 +10,7 @@ import { useFinance, clearLocalFinanceState } from '@/lib/store'
 import { CalendarDays, Sparkles, ShieldCheck, Bell, Globe, Lock, ChevronRight, LogOut, Check, Trash2 } from 'lucide-react'
 import { SectionTitle, ConfidenceBar, Modal } from '@/components/proto/ui'
 import { fmt } from '@/components/proto/format'
+import { useToast } from '@/components/Toast'
 import { tierLabel, tierCopy } from '@/lib/brain/describe'
 import { daysBetween, toISODate } from '@/lib/brain/stats'
 import { createClient } from '@/utils/supabase/client'
@@ -19,6 +20,7 @@ export default function Profile() {
   const body = useGoogleFont('Manrope')
   const router = useRouter()
   const { profile, setProfileName, setNotificationsOptIn, behaviorModel, commitments, transactions } = useFinance()
+  const toast = useToast()
 
   const [editing, setEditing] = useState(false)
   const [nameDraft, setNameDraft] = useState(profile.name)
@@ -44,10 +46,15 @@ export default function Profile() {
     e.preventDefault()
     if (signingOut) return
     setSigningOut(true)
-    // The route handler clears cookies and redirects to /login
-    const res = await fetch('/auth/signout', { method: 'POST' })
-    router.push(res.redirected ? res.url : '/login')
-    router.refresh()
+    try {
+      // The route handler clears cookies and redirects to /login
+      const res = await fetch('/auth/signout', { method: 'POST' })
+      router.push(res.redirected ? res.url : '/login')
+      router.refresh()
+    } catch {
+      toast.show('error', 'Unable to sign out. Check your connection and try again.')
+      setSigningOut(false)
+    }
   }
 
   const handleDeleteAccount = async () => {
@@ -77,7 +84,7 @@ export default function Profile() {
   return (
     <div className="min-h-screen bg-ink-50 pb-28 md:pb-10 md:pl-64" style={{ fontFamily: body }}>
       <AppHeader />
-      <main className="mx-auto w-full max-w-md px-5 pt-4 md:max-w-3xl md:px-8 space-y-6 animate-fade-up">
+      <main id="main" className="mx-auto w-full max-w-md px-5 pt-4 md:max-w-3xl md:px-8 space-y-6 animate-fade-up">
         <div>
           <h1 className="font-display text-2xl font-semibold text-ink-900">Profile</h1>
           <p className="text-sm text-ink-500 mt-1">Your account, behavior model, and preferences.</p>
@@ -122,7 +129,7 @@ export default function Profile() {
                 </div>
               )}
               <p className="text-xs text-ink-500 flex items-center gap-1 mt-0.5">
-                <CalendarDays size={12} /> Using Nafaka for {daysUsing} days
+                <CalendarDays size={12} /> Using Nafaka for <span className="tabular-nums">{daysUsing}</span> days
               </p>
             </div>
           </div>
@@ -151,7 +158,7 @@ export default function Profile() {
                   <p className="text-xs text-ink-500">{c.when} &middot; {c.status}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-bold text-ink-900">{fmt(c.amount)}</p>
+                  <p className="text-sm font-bold text-ink-900 tabular-nums">{fmt(c.amount)}</p>
                   <p className="text-[10px] text-brand-700 font-semibold">
                     {c.status === 'fulfilled' ? '100% reliable' : c.status === 'missed' ? '0% reliable' : 'tracking'}
                   </p>

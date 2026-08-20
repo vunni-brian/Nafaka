@@ -280,7 +280,7 @@ export default function Onboarding() {
                     value={balance}
                     onChange={(e) => setBalance(e.target.value.replace(/[^0-9]/g, ''))}
                     placeholder="0"
-                    className="flex-1 bg-transparent text-3xl outline-none text-ink-900 placeholder:text-ink-300"
+                    className="flex-1 bg-transparent text-3xl outline-none text-ink-900 placeholder:text-ink-400"
                     style={{ fontFamily: display }}
                   />
                 </div>

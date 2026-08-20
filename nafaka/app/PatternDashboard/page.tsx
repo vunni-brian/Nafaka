@@ -96,7 +96,7 @@ export default function PatternDashboard() {
 
   return (
     <div className="min-h-screen bg-background pb-32 md:pb-10 md:pl-64" style={{ fontFamily: body }}>
-      <div className="max-w-sm mx-auto px-6 pt-8 md:max-w-3xl md:px-8">
+      <div id="main" className="max-w-sm mx-auto px-6 pt-8 md:max-w-3xl md:px-8">
         <div className="flex items-center gap-3 mb-8">
           <Link
             href="/FinancialPersonality"
@@ -119,7 +119,7 @@ export default function PatternDashboard() {
           </div>
           {days.length > 0 ? (
             <>
-              <div className="grid grid-cols-10 gap-1.5 mb-3">
+              <div className="grid grid-cols-10 gap-1.5 mb-3" role="img" aria-label={`Income activity heatmap: ${days.map((d) => `${d.label}: ${d.count}`).join(', ')}`}>
                 {days.map(({ key, label, level, count }) => (
                   <div
                     key={key}
@@ -158,14 +158,14 @@ export default function PatternDashboard() {
                   <div key={i}>
                     <div className="flex items-baseline justify-between mb-1.5">
                       <p className="text-sm font-medium text-foreground">{label}</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-muted-foreground tabular-nums">
                         UGX {current.toLocaleString()} / {target.toLocaleString()}
                       </p>
                     </div>
                     <div className="h-2.5 rounded-full bg-muted overflow-hidden">
                       <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
                     </div>
-                    <p className="text-[11px] text-muted-foreground mt-1">{pct}% of the way there</p>
+                    <p className="text-[11px] text-muted-foreground mt-1 tabular-nums">{pct}% of the way there</p>
                   </div>
                 )
               })}
@@ -179,6 +179,7 @@ export default function PatternDashboard() {
           <h2 className="text-sm font-semibold text-foreground mb-1">Spending by category</h2>
           <p className="text-xs text-muted-foreground mb-4">From recorded expenses</p>
           {categoryData.length > 0 ? (
+            <div role="img" aria-label={`Chart: ${categoryData.map((c) => `${c.category}: ${c.amount.toLocaleString()}`).join(', ')}`}>
             <ChartContainer config={chartConfig} className="h-48 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={categoryData} margin={{ left: -20 }}>
@@ -194,6 +195,7 @@ export default function PatternDashboard() {
                 </BarChart>
               </ResponsiveContainer>
             </ChartContainer>
+            </div>
           ) : (
             <p className="text-xs text-muted-foreground">Record expenses to see where your money goes.</p>
           )}
@@ -217,7 +219,7 @@ export default function PatternDashboard() {
                       <p className="text-sm font-medium text-foreground">{label}</p>
                       <p className="text-xs text-muted-foreground">{when}</p>
                     </div>
-                    <p className="text-sm font-semibold text-foreground">UGX {amount.toLocaleString()}</p>
+                    <p className="text-sm font-semibold text-foreground tabular-nums">UGX {amount.toLocaleString()}</p>
                   </div>
                 )
               })}

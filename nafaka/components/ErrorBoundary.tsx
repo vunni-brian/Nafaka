@@ -25,7 +25,7 @@ export default class ErrorBoundary extends React.Component<Props, State> {
   render() {
     if (this.state.error) {
       return (
-        <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-ink-50 px-6 text-center" style={{ fontFamily: 'Manrope, sans-serif' }}>
+        <main id="main" className="flex min-h-screen flex-col items-center justify-center gap-4 bg-ink-50 px-6 text-center" style={{ fontFamily: 'Manrope, sans-serif' }}>
           <p className="font-display text-2xl font-semibold text-ink-900">Something went wrong</p>
           <p className="max-w-sm text-sm leading-relaxed text-ink-500">
             Nafaka hit an unexpected error. If it keeps happening, reset your local data — nothing is lost that

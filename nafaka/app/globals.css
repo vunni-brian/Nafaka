@@ -8,7 +8,7 @@
   --color-card-foreground: #1f2330;
   --color-popover: #ffffff;
   --color-popover-foreground: #1f2330;
-  --color-primary: #0d9a68;
+  --color-primary: #0d8257;
   --color-primary-foreground: #ffffff;
   --color-secondary: #eceef2;
   --color-secondary-foreground: #41495d;
@@ -30,7 +30,7 @@
   --color-ink-100: #eceef2;
   --color-ink-200: #d5d9e2;
   --color-ink-300: #b0b7c6;
-  --color-ink-400: #848fa5;
+  --color-ink-400: #616d85;
   --color-ink-500: #65718a;
   --color-ink-600: #505a72;
   --color-ink-700: #41495d;
@@ -43,7 +43,7 @@
   --color-brand-300: #7be8bd;
   --color-brand-400: #3fd69b;
   --color-brand-500: #19bd80;
-  --color-brand-600: #0d9a68;
+  --color-brand-600: #0d8257;
   --color-brand-700: #0c7a56;
   --color-brand-800: #0d6147;
   --color-brand-900: #0c4f3c;
@@ -54,7 +54,7 @@
   --color-accent-300: #f9bf71;
   --color-accent-400: #f59938;
   --color-accent-500: #f27d14;
-  --color-accent-600: #e0620a;
+  --color-accent-600: #c6530a;
   --color-accent-700: #bc4a0b;
   --color-accent-800: #963a11;
   --color-accent-900: #7a3212;
@@ -133,6 +133,17 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 * {
   border-color: var(--color-border);
 }
@@ -176,6 +187,6 @@ body {
     @apply inline-flex items-center justify-center gap-2 rounded-xl bg-secondary px-4 py-3 text-sm font-semibold text-secondary-foreground transition hover:bg-secondary/80 active:scale-[0.98];
   }
   .input {
-    @apply w-full rounded-xl border border-input bg-white px-4 py-3 text-sm text-foreground placeholder-muted-foreground outline-none transition focus:border-ring focus:ring-4 focus:ring-ring/15;
+    @apply w-full rounded-xl border border-input bg-white px-4 py-3 text-base text-foreground placeholder-muted-foreground outline-none transition focus:border-ring focus:ring-4 focus:ring-ring/15 sm:text-sm;
   }
 }

@@ -49,7 +49,7 @@ export default function FeedbackButton() {
                 onChange={(e) => setText(e.target.value)}
                 placeholder="Type your feedback..."
                 rows={3}
-                className="w-full bg-background border border-border rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:border-primary placeholder:text-muted-foreground resize-none transition-colors"
+                className="w-full bg-background border border-border rounded-xl px-3 py-2 text-base text-foreground outline-none focus:border-primary placeholder:text-muted-foreground resize-none transition-colors sm:text-sm"
               />
               <button
                 disabled={!text.trim()}

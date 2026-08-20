@@ -48,19 +48,20 @@ export default function WeeklyReview() {
   return (
     <div className="min-h-screen bg-ink-50 pb-28 md:pb-10 md:pl-64" style={{ fontFamily: body }}>
       <AppHeader />
-      <main className="mx-auto w-full max-w-md px-5 pt-4 md:max-w-3xl md:px-8 space-y-6 animate-fade-up">
+      <main id="main" className="mx-auto w-full max-w-md px-5 pt-4 md:max-w-6xl md:px-10 space-y-6 animate-fade-up">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="font-display text-2xl font-semibold text-ink-900">Weekly Review</h1>
             <p className="text-sm text-ink-500 mt-1">{weekLabel}</p>
           </div>
           <StatPill tone="positive">
-            <Sparkles size={12} /> {confidencePctValue}% confidence
+            <Sparkles size={12} /> <span className="tabular-nums">{confidencePctValue}%</span> confidence
           </StatPill>
         </div>
 
+        <div className="md:grid md:grid-cols-2 md:gap-6 md:items-start">
         {/* Judgment-filtered headline */}
-        <div className="relative overflow-hidden rounded-xl2 bg-gradient-to-br from-brand-600 to-brand-800 p-6 text-white shadow-card">
+        <div className="relative overflow-hidden rounded-xl2 bg-gradient-to-br from-brand-600 to-brand-800 p-6 text-white shadow-card md:row-start-1 md:col-start-1">
           <div className="absolute -right-8 -bottom-8 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
           <div className="relative">
             <div className="flex items-center gap-2 text-white/70">
@@ -77,17 +78,17 @@ export default function WeeklyReview() {
         </div>
 
         {/* Delta comparison */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3 md:row-start-1 md:col-start-2">
           <div className="card p-4">
             <p className="text-xs font-medium text-ink-500">Total spending</p>
-            <p className="mt-1 text-2xl font-bold text-accent-700">
+            <p className="mt-1 text-2xl font-bold text-accent-700 tabular-nums">
               {totalDelta === null ? '—' : `${totalDelta > 0 ? '+' : ''}${totalDelta}%`}
             </p>
             <p className="text-[11px] text-ink-400 mt-1">vs last week</p>
           </div>
           <div className="card p-4">
             <p className="text-xs font-medium text-ink-500">Discretionary spending</p>
-            <p className="mt-1 text-2xl font-bold text-brand-700">
+            <p className="mt-1 text-2xl font-bold text-brand-700 tabular-nums">
               {discretionary.sampleSize > 0 ? `${Math.round(discretionary.value)}%` : '—'}
             </p>
             <p className="text-[11px] text-ink-400 mt-1">the part you control</p>
@@ -95,7 +96,7 @@ export default function WeeklyReview() {
         </div>
 
         {/* Highlights */}
-        <div>
+        <div className="md:row-start-2 md:col-start-1">
           <SectionTitle title="Week highlights" />
           <div className="grid grid-cols-2 gap-3">
             {highlights.map((h) => (
@@ -110,14 +111,14 @@ export default function WeeklyReview() {
                   </span>
                   <p className="text-[11px] font-medium text-ink-500">{h.label}</p>
                 </div>
-                <p className="mt-2 text-sm font-bold text-ink-900">{h.value}</p>
+                <p className="mt-2 text-sm font-bold text-ink-900 tabular-nums">{h.value}</p>
               </div>
             ))}
           </div>
         </div>
 
         {/* Next week coaching */}
-        <div>
+        <div className="md:row-start-2 md:col-start-2">
           <SectionTitle title="Looking ahead" hint="Adaptive coaching for next week" />
           <div className="space-y-3">
             {predictions.length > 0 ? (
@@ -141,11 +142,14 @@ export default function WeeklyReview() {
             )}
           </div>
         </div>
+        </div>
 
-        <Link href="/AIChat" className="btn-primary w-full">
-          <Sparkles size={16} /> Ask Nafaka about this week
-          <ChevronRight size={16} />
-        </Link>
+        <div className="md:flex md:justify-center md:pt-1">
+          <Link href="/AIChat" className="btn-primary w-full md:w-auto md:px-10">
+            <Sparkles size={16} /> Ask Nafaka about this week
+            <ChevronRight size={16} />
+          </Link>
+        </div>
       </main>
 
       <BottomNav active="coach" />

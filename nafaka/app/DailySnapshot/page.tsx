@@ -143,7 +143,7 @@ export default function DailySnapshot() {
     return (
       <div className="min-h-screen bg-ink-50 pb-28 md:pb-10 md:pl-64" style={{ fontFamily: body }}>
         <AppHeader />
-        <main className="mx-auto w-full max-w-md px-5 pt-4 md:max-w-3xl md:px-8">
+        <main id="main" className="mx-auto w-full max-w-md px-5 pt-4 md:max-w-3xl md:px-8">
           <LearningState confidence={confidencePct} dataPoints={behaviorModel.dataPoints} onAdd={() => openAdd('expense')} />
         </main>
         <BottomNav active="home" />
@@ -155,13 +155,41 @@ export default function DailySnapshot() {
   return (
     <div className="min-h-screen bg-ink-50 pb-28 md:pb-10 md:pl-64" style={{ fontFamily: body }}>
       <AppHeader />
-      <main className="mx-auto w-full max-w-md px-5 pt-4 md:max-w-4xl md:px-8 space-y-6 animate-fade-up">
+      <main id="main" className="mx-auto w-full max-w-md px-5 pt-4 md:max-w-6xl md:px-10 space-y-6 animate-fade-up">
+        {/* Desktop page header (web-only arrangement) */}
+        <div className="hidden md:flex items-center justify-between">
+          <div>
+            <p className="text-xs font-medium text-ink-500">
+              {now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+            </p>
+            <h1 className="font-display text-2xl font-semibold text-ink-900 mt-0.5">
+              {now.getHours() < 12 ? 'Good morning' : now.getHours() < 18 ? 'Good afternoon' : 'Good evening'}, {profile.name || 'there'}
+            </h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={() => openAdd('income')} className="btn-primary">
+              Add income
+            </button>
+            <button onClick={() => openAdd('expense')} className="btn-ghost">
+              Add expense
+            </button>
+            <Link
+              href="/Notifications"
+              className="relative ml-1 flex h-11 w-11 items-center justify-center rounded-xl border border-ink-200 bg-white text-ink-600 hover:bg-ink-50 transition"
+              aria-label="Notifications"
+            >
+              <Bell size={18} />
+              <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-accent-400" />
+            </Link>
+          </div>
+        </div>
+
         {/* Hero balance card */}
-        <div className="relative overflow-hidden rounded-xl2 bg-gradient-to-br from-ink-900 via-ink-900 to-brand-950 p-5 text-white shadow-card">
+        <div className="relative overflow-hidden rounded-xl2 bg-gradient-to-br from-ink-900 via-ink-900 to-brand-950 p-5 text-white shadow-card md:col-span-2 md:row-start-1 md:col-start-1">
           <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-brand-500/20 blur-2xl" />
           <div className="absolute -right-4 top-10 h-24 w-24 rounded-full bg-accent-500/10 blur-xl" />
           <div className="relative">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between md:hidden">
               <div>
                 <h1 className="text-xs font-medium text-white/60">
                   {now.getHours() < 12 ? 'Good morning' : now.getHours() < 18 ? 'Good afternoon' : 'Good evening'}, {profile.name || 'there'}
@@ -178,8 +206,8 @@ export default function DailySnapshot() {
               </Link>
             </div>
 
-            <p className="mt-5 text-xs font-medium text-white/60">Current balance</p>
-            <p className="mt-1 font-display text-3xl font-semibold tracking-tight">{fmtFull(balance)}</p>
+            <p className="mt-5 text-xs font-medium text-white/60 md:mt-0">Current balance</p>
+            <p className="mt-1 font-display text-3xl font-semibold tracking-tight tabular-nums">{fmtFull(balance)}</p>
 
             <div className="mt-4 flex items-center gap-4">
               <div className="flex items-center gap-1.5">
@@ -188,7 +216,7 @@ export default function DailySnapshot() {
                 </span>
                 <div>
                   <p className="text-[10px] text-white/50">Income this week</p>
-                  <p className="text-sm font-semibold">{fmt(weekTotals.income)}</p>
+                  <p className="text-sm font-semibold tabular-nums">{fmt(weekTotals.income)}</p>
                 </div>
               </div>
               <div className="flex items-center gap-1.5">
@@ -197,7 +225,7 @@ export default function DailySnapshot() {
                 </span>
                 <div>
                   <p className="text-[10px] text-white/50">Spent this week</p>
-                  <p className="text-sm font-semibold">{fmt(weekTotals.spending)}</p>
+                  <p className="text-sm font-semibold tabular-nums">{fmt(weekTotals.spending)}</p>
                 </div>
               </div>
             </div>
@@ -205,7 +233,7 @@ export default function DailySnapshot() {
             <div className="mt-5 flex items-center justify-between border-t border-white/15 pt-4">
               <div>
                 <p className="text-[10px] text-white/50">Safe to spend today</p>
-                <p className="text-lg font-semibold mt-0.5">{fmtFull(safeToSpend)}</p>
+                <p className="text-lg font-semibold mt-0.5 tabular-nums">{fmtFull(safeToSpend)}</p>
               </div>
               <button
                 onClick={() => setShowWhy((v) => !v)}
@@ -238,13 +266,12 @@ export default function DailySnapshot() {
           </div>
         </div>
 
-        {/* Desktop: two-column dashboard below the hero */}
-        <div className="md:grid md:grid-cols-2 md:gap-6 md:items-start">
-          <div className="space-y-6">
-            {/* Learning status + buffer */}
-            <div className="card p-4">
-              <div className="flex items-center gap-4">
-                <Ring value={confidencePct} size={72} stroke={7} label={`${confidencePct}%`} sublabel="conf." />
+        {/* Desktop (web) dashboard arrangement — same theme, different layout from the app */}
+        <div className="md:grid md:grid-cols-3 md:gap-6 md:items-start">
+          {/* Learning status + buffer */}
+          <div className="card p-4 md:row-start-1 md:col-start-3">
+            <div className="flex items-center gap-4">
+              <Ring value={confidencePct} size={72} stroke={7} label={`${confidencePct}%`} sublabel="conf." />
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <Sparkles size={15} className="text-brand-600" />
@@ -261,13 +288,13 @@ export default function DailySnapshot() {
             </div>
 
             {/* Quick add */}
-            <div>
+            <div className="md:row-start-2 md:col-start-3">
               <SectionTitle title="Quick add" hint="Log income or expense to teach Nafaka" />
               <QuickAdd onPick={openAdd} />
             </div>
 
             {/* Recent transactions */}
-            <div>
+            <div className="md:row-start-2 md:col-start-1 md:col-span-2">
               <SectionTitle title="Recent activity" hint="Last 7 days" />
               <div className="card divide-y divide-ink-100">
                 {transactions.slice(0, 6).map((t) => (
@@ -287,7 +314,7 @@ export default function DailySnapshot() {
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className={`text-sm font-semibold ${t.type === 'income' ? 'text-brand-700' : 'text-ink-900'}`}>
+                      <p className={`text-sm font-semibold tabular-nums ${t.type === 'income' ? 'text-brand-700' : 'text-ink-900'}`}>
                         {t.type === 'income' ? '+' : '−'}
                         {fmtFull(t.amount)}
                       </p>
@@ -302,12 +329,10 @@ export default function DailySnapshot() {
                 )}
               </div>
             </div>
-          </div>
 
-          <div className="space-y-6">
             {/* Weekly insight teaser */}
             {predictions.length > 0 && (
-              <div className="card overflow-hidden">
+              <div className="card overflow-hidden md:row-start-3 md:col-start-1 md:col-span-2">
                 <Link href="/WeeklyReview" className="w-full block p-4 hover:bg-ink-50 transition">
                   <div className="flex items-start gap-3">
                     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-100 text-brand-700">
@@ -329,13 +354,13 @@ export default function DailySnapshot() {
             )}
 
             {/* Income trend chart */}
-            <div className="card p-4">
+            <div className="card p-4 md:row-start-4 md:col-start-1 md:col-span-2">
               <SectionTitle
                 title="Income trend"
                 hint="Last 6 months"
                 action={
                   growth !== null ? (
-                    <span className="pill bg-brand-100 text-brand-700">
+                    <span className="pill bg-brand-100 text-brand-700 tabular-nums">
                       <TrendingUp size={12} /> {growth >= 0 ? '+' : ''}
                       {growth}%
                     </span>
@@ -347,14 +372,14 @@ export default function DailySnapshot() {
 
             {/* Spending chart - week12 only */}
             {!isWeek4 && (
-              <div className="card p-4">
+              <div className="card p-4 md:row-start-4 md:col-start-3">
                 <SectionTitle title="Weekly spending" hint="Last 6 weeks" />
                 <AreaChart data={weeklySpend} labels={weekLabels} tone="accent" valuePrefix="UGX " />
               </div>
             )}
 
             {/* Behavioral signals glance */}
-            <div>
+            <div className="md:row-start-5 md:col-start-1 md:col-span-3">
               <SectionTitle
                 title="Your financial behavior"
                 hint={isWeek4 ? 'Emerging signals - still learning' : 'Learned signals, updated daily'}
@@ -364,7 +389,7 @@ export default function DailySnapshot() {
                   </Link>
                 }
               />
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                 {signalChips.map((c) => (
                   <SignalChip key={c.label} icon={c.icon} label={c.label} value={c.value} tone={c.tone} />
                 ))}
@@ -373,7 +398,7 @@ export default function DailySnapshot() {
 
             {/* Spend breakdown donut - week12 only */}
             {!isWeek4 && spendBreakdown.length > 0 && (
-              <div className="card p-4">
+              <div className="card p-4 md:row-start-3 md:col-start-3">
                 <SectionTitle title="Where your money went" hint="This week" />
                 <div className="flex items-center gap-5">
                   <DonutSegments
@@ -395,7 +420,6 @@ export default function DailySnapshot() {
                 </div>
               </div>
             )}
-          </div>
         </div>
       </main>
 
@@ -417,7 +441,7 @@ function SignalChip({ icon, label, value, tone }: { icon: React.ReactNode; label
         {icon}
         <p className="text-[11px] font-medium text-ink-500">{label}</p>
       </div>
-      <p className="mt-2 text-sm font-bold text-ink-900">{value}</p>
+      <p className="mt-2 text-sm font-bold text-ink-900 tabular-nums">{value}</p>
     </div>
   )
 }

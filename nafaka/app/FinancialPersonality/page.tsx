@@ -95,7 +95,7 @@ export default function FinancialPersonality() {
     return (
       <div className="min-h-screen bg-ink-50 pb-28 md:pb-10 md:pl-64" style={{ fontFamily: body }}>
         <AppHeader />
-        <main className="mx-auto w-full max-w-md px-5 pt-4 md:max-w-3xl md:px-8">
+        <main id="main" className="mx-auto w-full max-w-md px-5 pt-4 md:max-w-3xl md:px-8">
           <LearningState confidence={confidencePctValue} dataPoints={dataPoints} />
         </main>
         <BottomNav active="patterns" />
@@ -106,7 +106,7 @@ export default function FinancialPersonality() {
   return (
     <div className="min-h-screen bg-ink-50 pb-28 md:pb-10 md:pl-64" style={{ fontFamily: body }}>
       <AppHeader />
-      <main className="mx-auto w-full max-w-md px-5 pt-4 md:max-w-3xl md:px-8 space-y-6 animate-fade-up">
+      <main id="main" className="mx-auto w-full max-w-md px-5 pt-4 md:max-w-6xl md:px-10 space-y-6 animate-fade-up">
         <div>
           <h1 className="font-display text-2xl font-semibold text-ink-900">Patterns</h1>
           <p className="text-sm text-ink-500 mt-1">
@@ -118,15 +118,16 @@ export default function FinancialPersonality() {
           </div>
         </div>
 
+        <div className="md:grid md:grid-cols-2 md:gap-6 md:items-start">
         {/* Spending by week */}
-        <div className="card p-4">
+        <div className="card p-4 md:row-start-1 md:col-start-1">
           <SectionTitle title="Spending by week" hint="See your spending rhythm" />
           <BarChart data={weeklySpend} labels={weekLabels} tone="accent" height={130} />
         </div>
 
         {/* Confirmed patterns */}
-        {confirmed.length > 0 && (
-          <div>
+        {confirmed.length > 0 ? (
+          <div className="md:row-start-1 md:col-start-2">
             <SectionTitle title="Confirmed patterns" hint={`${confirmed.length} patterns locked in`} />
             <div className="space-y-3">
               {confirmed.map((ins) => {
@@ -151,11 +152,18 @@ export default function FinancialPersonality() {
               })}
             </div>
           </div>
+        ) : (
+          <div className="card p-6 text-center md:row-start-1 md:col-start-2">
+            <p className="text-sm text-ink-600">No confirmed patterns yet</p>
+            <p className="text-xs text-ink-400 mt-1 leading-relaxed">
+              Keep recording and Nafaka will lock in patterns as your confidence grows.
+            </p>
+          </div>
         )}
 
         {/* Emerging patterns */}
-        {emerging.length > 0 && (
-          <div>
+        {emerging.length > 0 ? (
+          <div className="md:row-start-2 md:col-start-1">
             <SectionTitle title="Emerging patterns" hint="Needs more data to confirm" />
             <div className="space-y-3">
               {emerging.map((ins) => {
@@ -189,11 +197,18 @@ export default function FinancialPersonality() {
               })}
             </div>
           </div>
+        ) : (
+          <div className="card p-6 text-center md:row-start-2 md:col-start-1">
+            <p className="text-sm text-ink-600">No emerging patterns yet</p>
+            <p className="text-xs text-ink-400 mt-1 leading-relaxed">
+              They appear as patterns start to form from your recorded activity.
+            </p>
+          </div>
         )}
 
         {/* All signals */}
-        {signalRows.length > 0 && (
-          <div>
+        {signalRows.length > 0 ? (
+          <div className="md:row-start-2 md:col-start-2">
             <SectionTitle title="All behavioral signals" hint={confidence >= 0.7 ? 'Calculated daily from your activity' : 'Emerging - still calculating'} />
             <div className="card divide-y divide-ink-100">
               {signalRows.map((s) => (
@@ -214,16 +229,23 @@ export default function FinancialPersonality() {
                     <p className="text-xs text-ink-500 leading-snug mt-0.5">{s.description}</p>
                   </div>
                   <span className="text-right">
-                    <p className="text-sm font-bold text-ink-900 whitespace-nowrap">{s.display}</p>
+                    <p className="text-sm font-bold text-ink-900 whitespace-nowrap tabular-nums">{s.display}</p>
                   </span>
                 </div>
               ))}
             </div>
           </div>
+        ) : (
+          <div className="card p-6 text-center md:row-start-2 md:col-start-2">
+            <p className="text-sm text-ink-600">No behavioral signals yet</p>
+            <p className="text-xs text-ink-400 mt-1 leading-relaxed">
+              Add a few transactions to see how Nafaka reads your money behavior.
+            </p>
+          </div>
         )}
 
         {/* Locked / future signals */}
-        <div>
+        <div className="md:row-start-3 md:col-start-1 md:col-span-2">
           <SectionTitle title="Still learning" hint="Unlocks with more data" />
           <div className="card divide-y divide-ink-100">
             {lockedExamples.map((label) => (
@@ -236,6 +258,7 @@ export default function FinancialPersonality() {
               </div>
             ))}
           </div>
+        </div>
         </div>
       </main>
 

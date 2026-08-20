@@ -47,7 +47,7 @@ export default function LearningState({
       </div>
 
       <div>
-        <h3 className="font-display text-base font-semibold text-ink-900 mb-3">What unlocks as I learn</h3>
+        <h2 className="font-display text-base font-semibold text-ink-900 mb-3">What unlocks as I learn</h2>
         <div className="space-y-2.5">
           <UnlockRow label="Pattern detection" detail="Spending rhythms, income timing, weekend habits" unlocked={confidence >= 40} atConfidence={40} />
           <UnlockRow label="Financial Health Score" detail="Resilience, commitments, spending control, savings" unlocked={confidence >= 70} atConfidence={70} />
